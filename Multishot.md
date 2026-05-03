@@ -118,3 +118,116 @@ python -m py_compile run_eval.py
 
 The full model evaluation was not run during this change because it requires
 loading the GPU model.
+
+## Additional Changes: Diverse Candidates and Oracle Diagnostics
+
+After the first multishot experiment did not improve accuracy, `run_eval.py`
+was expanded again to make the five candidates more meaningfully different and
+to diagnose whether the selector or the candidate generation is the bottleneck.
+
+### Candidate Variants
+
+Instead of generating five sampled responses from the exact same prompt, the
+script now defines named prompt variants:
+
+```python
+CANDIDATE_VARIANTS = [
+    ("baseline_deterministic", ""),
+    ("answer_order_audit", "..."),
+    ("formula_first_exact", "..."),
+    ("independent_then_options", "..."),
+    ("sanity_check", "..."),
+]
+NUM_CANDIDATES = len(CANDIDATE_VARIANTS)
+```
+
+The first candidate is a deterministic baseline generated with
+`temperature=0.0`. The other four candidates are sampled attempts with
+different instructions:
+
+- `answer_order_audit`: identify every requested answer and preserve the order
+  of the real `[ANS]` blanks.
+- `formula_first_exact`: write the relevant formula first, keep exact values
+  until the final step, and round only when requested.
+- `independent_then_options`: solve before looking at choices, then compare
+  against every option for multiple-choice problems.
+- `sanity_check`: check units, signs, ranges, rounding, and reasonableness
+  before boxing the final answer.
+
+### Candidate Generation Flow
+
+The old code used one vLLM call with `n=NUM_CANDIDATES`. The new code generates
+single-output prompts through a helper:
+
+```python
+generate_single_outputs(...)
+```
+
+This allows each candidate slot to use a different prompt. The baseline pass
+uses deterministic sampling parameters, while the four variant prompts use the
+existing sampled settings.
+
+### Selector Prompt Expansion
+
+The selector prompt now asks the model to:
+
+- re-solve the problem independently,
+- compare its answer against the candidate answers,
+- check answer count, order, units, signs, rounding, and requirements,
+- use consensus only as supporting evidence,
+- return a corrected final answer if all candidates are flawed but the problem
+  can be solved.
+
+The selector prompt also includes an answer-format hint. For multiple-choice
+problems, it reminds the model to return one option letter. For free-form
+problems, it reports the number of `[ANS]` placeholders and warns that some
+placeholders may be formatting noise or copied choice labels.
+
+### Oracle Diagnostics
+
+When ground-truth answers are available, the script now scores each individual
+candidate in addition to the final selected response. Each result row includes:
+
+```json
+{
+  "candidate_variants": ["baseline_deterministic", "answer_order_audit"],
+  "candidate_correct": [false, true],
+  "oracle_correct": true
+}
+```
+
+Field meanings:
+
+- `candidate_variants`: the prompt strategy used for each candidate.
+- `candidate_correct`: whether each candidate was locally correct.
+- `oracle_correct`: whether at least one candidate was correct.
+
+The accuracy summary now includes:
+
+- final MCQ, free-form, and overall accuracy,
+- `Oracle@5`, which shows how often at least one candidate was correct,
+- the number of cases where the selector missed an available correct candidate,
+- candidate accuracy broken down by prompt variant.
+
+### Diagnostic Interpretation
+
+Use the new summary this way:
+
+- High `Oracle@5` but low final accuracy means the selector is failing to pick
+  the right candidate or is over-correcting.
+- Low `Oracle@5` means the prompts are not producing enough correct candidate
+  answers, so the next step should be better variants, retrieval-style few-shot
+  prompting, or supervised fine-tuning.
+- If one variant clearly beats the others, promote that prompt style into the
+  main prompt and build new variants around it.
+
+### Current Validation
+
+After these changes, the script was syntax-checked again with:
+
+```bash
+python -m py_compile run_eval.py
+```
+
+The full model evaluation was not run during this change because it requires
+loading the GPU model.
