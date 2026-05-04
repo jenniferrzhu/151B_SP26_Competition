@@ -2,4 +2,7 @@
 .venv
 results
 __pycache__
-LICENSE
+.env
+*.log
+logs/
+MATH/

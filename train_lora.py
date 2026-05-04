@@ -1,22 +1,15 @@
-"""QLoRA fine-tune Qwen3-4B-Thinking on data/train.jsonl.
+"""QLoRA fine-tune Qwen3-4B-Thinking on combined (RSFT + Hendrycks MATH) traces.
 
-This is a pragmatic first sketch:
-- Loads the base model in 4-bit (NF4) via bitsandbytes (QLoRA)
-- Adds a rank-16 LoRA adapter on attention + MLP projections
-- Trains on (system + question) -> "\\boxed{<gold answer>}" pairs
-- Loss is masked on the prompt, only assistant response tokens contribute
+Sources mixed at load time:
+- data/train_with_traces.jsonl       — base-model RSFT traces (preserves thinking style)
+- data/train_math.jsonl              — Hendrycks MATH Levels 4-5 (human-written solutions,
+                                       contamination-filtered against public/private/test)
 
-Caveat: we do NOT have ground-truth reasoning traces in train.jsonl, so the
-assistant message is just the boxed answer. This trains the model to output
-the correct final answer in the right format. To preserve / improve thinking
-quality, the better recipe is rejection-sampling fine-tuning: generate
-reasoning traces with the base model, keep only ones that reach the gold
-answer, then train on (prompt, generated_reasoning + boxed_answer). That's a
-follow-up — get this minimal version working first.
+Loss is masked on the prompt; only assistant-completion tokens contribute.
 
 Outputs:
-  adapters/qwen3-lora-v1/         # LoRA weights to load at inference time
-  adapters/qwen3-lora-v1/training.log
+  adapters/qwen3-lora-v3/         # LoRA weights to load at inference time
+  adapters/qwen3-lora-v3/training.log
 """
 import json
 import os
@@ -27,9 +20,9 @@ from typing import Optional
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID    = "Qwen/Qwen3-4B-Thinking-2507"
 GPU_ID      = "7"
-TRAIN_PATH  = "data/train.jsonl"
-TRACES_PATH = "data/train_with_traces.jsonl"     # if exists, use these as targets (RSFT)
-OUTPUT_DIR  = "adapters/qwen3-lora-v2"
+RSFT_TRACES_PATH = "data/train_with_traces.jsonl"     # base-model RSFT traces
+MATH_TRACES_PATH = "data/train_math.jsonl"            # Hendrycks MATH Levels 4-5
+OUTPUT_DIR       = "adapters/qwen3-lora-v3"
 LOG_PATH    = f"{OUTPUT_DIR}/training.log"
 
 # LoRA hyperparams
@@ -120,18 +113,23 @@ def main() -> None:
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     log_fp = open(LOG_PATH, "w", buffering=1)
 
-    if Path(TRACES_PATH).exists():
-        log(f"Loading data from {TRACES_PATH} (RSFT mode — targets include reasoning)", log_fp)
-        raw = [json.loads(line) for line in open(TRACES_PATH)]
-        before = len(raw)
-        raw = [item for item in raw if len(item.get("trace", "")) <= MAX_TRACE_CHARS]
-        log(f"  Filtered traces > {MAX_TRACE_CHARS} chars: kept {len(raw)}/{before}", log_fp)
-    else:
-        log(f"Loading data from {TRAIN_PATH} (no traces file — targets are bare boxed answers; reasoning will degrade)", log_fp)
-        raw = [json.loads(line) for line in open(TRAIN_PATH)]
+    raw = []
+    for src_path, label in [
+        (RSFT_TRACES_PATH, "RSFT base-model traces"),
+        (MATH_TRACES_PATH, "Hendrycks MATH Levels 4-5"),
+    ]:
+        if not Path(src_path).exists():
+            log(f"  WARNING: {src_path} not found — skipping {label}", log_fp)
+            continue
+        items = [json.loads(line) for line in open(src_path)]
+        before = len(items)
+        items = [it for it in items if it.get("trace") and len(it["trace"]) <= MAX_TRACE_CHARS]
+        log(f"  {src_path}: {len(items)}/{before} items kept (have trace, ≤{MAX_TRACE_CHARS} chars) [{label}]", log_fp)
+        raw.extend(items)
+
     n_mcq  = sum(1 for d in raw if d.get("options"))
     n_free = len(raw) - n_mcq
-    log(f"  {len(raw)} train items ({n_mcq} MCQ, {n_free} free-form)", log_fp)
+    log(f"Combined dataset: {len(raw)} items ({n_mcq} MCQ, {n_free} free-form)", log_fp)
 
     log(f"Loading tokenizer + 4-bit base model ({MODEL_ID})", log_fp)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
