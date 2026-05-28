@@ -22,6 +22,7 @@ test_name     = "Altered FRQ Prompt"
 PRED_PATH     = f"results/{test_name}/predictions.jsonl"
 ACC_PATH      = f"results/{test_name}/accuracy.txt"
 PROGRESS_PATH = f"results/{test_name}/progress.log"
+PROMPT_CONFIG_PATH = os.environ.get("GEPA_PROMPT_CONFIG", "").strip()
 MAX_TOKENS    = 32768
 CHUNK_SIZE    = 32                       # log progress every N prompts
 SELECT_CHUNK_SIZE = 16
@@ -51,7 +52,6 @@ CANDIDATE_VARIANTS = [
         "is reasonable. Correct the final answer before boxing it if the check fails.",
     ),
 ]
-NUM_CANDIDATES = len(CANDIDATE_VARIANTS)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
@@ -99,6 +99,52 @@ SYSTEM_PROMPT_SELECT = (
 )
 
 
+def normalize_candidate_variant(variant) -> dict:
+    if isinstance(variant, dict):
+        name = str(variant.get("name", "candidate")).strip() or "candidate"
+        return {
+            "name": name,
+            "instruction": str(variant.get("instruction", "")).strip(),
+            "math_system_prompt": variant.get("math_system_prompt"),
+            "mcq_system_prompt": variant.get("mcq_system_prompt"),
+        }
+
+    name, instruction = variant[:2]
+    return {
+        "name": str(name),
+        "instruction": str(instruction).strip(),
+        "math_system_prompt": None,
+        "mcq_system_prompt": None,
+    }
+
+
+def variant_name(variant: dict) -> str:
+    return variant["name"]
+
+
+def apply_prompt_config() -> Optional[str]:
+    global SYSTEM_PROMPT_MATH, SYSTEM_PROMPT_MCQ, SYSTEM_PROMPT_SELECT
+    global CANDIDATE_VARIANTS, NUM_CANDIDATES
+
+    if PROMPT_CONFIG_PATH:
+        with open(PROMPT_CONFIG_PATH, "r") as f:
+            config = json.load(f)
+
+        SYSTEM_PROMPT_MATH = config.get("math_system_prompt", SYSTEM_PROMPT_MATH)
+        SYSTEM_PROMPT_MCQ = config.get("mcq_system_prompt", SYSTEM_PROMPT_MCQ)
+        SYSTEM_PROMPT_SELECT = config.get("selector_system_prompt", SYSTEM_PROMPT_SELECT)
+        config_variants = config.get("candidate_variants")
+        if config_variants:
+            CANDIDATE_VARIANTS = config_variants
+
+    CANDIDATE_VARIANTS = [
+        normalize_candidate_variant(variant)
+        for variant in CANDIDATE_VARIANTS
+    ]
+    NUM_CANDIDATES = len(CANDIDATE_VARIANTS)
+    return PROMPT_CONFIG_PATH or None
+
+
 def format_problem(question: str, options: Optional[list]) -> str:
     if options:
         labels = [chr(65 + i) for i in range(len(options))]
@@ -107,19 +153,31 @@ def format_problem(question: str, options: Optional[list]) -> str:
     return question
 
 
-def build_prompt(question: str, options: Optional[list]) -> tuple[str, str]:
+def build_prompt(
+    question: str,
+    options: Optional[list],
+    variant: Optional[dict] = None,
+) -> tuple[str, str]:
     if options:
-        return SYSTEM_PROMPT_MCQ, format_problem(question, options)
-    return SYSTEM_PROMPT_MATH, question
+        system = SYSTEM_PROMPT_MCQ
+        if variant and variant.get("mcq_system_prompt"):
+            system = variant["mcq_system_prompt"]
+        return system, format_problem(question, options)
+
+    system = SYSTEM_PROMPT_MATH
+    if variant and variant.get("math_system_prompt"):
+        system = variant["math_system_prompt"]
+    return system, question
 
 
-def build_candidate_prompt(tokenizer, item: dict, variant: tuple[str, str]) -> str:
-    variant_name, variant_instruction = variant
-    system, user = build_prompt(item["question"], item.get("options"))
+def build_candidate_prompt(tokenizer, item: dict, variant: dict) -> str:
+    name = variant_name(variant)
+    variant_instruction = variant.get("instruction", "")
+    system, user = build_prompt(item["question"], item.get("options"), variant)
     if variant_instruction:
         user = (
             f"{user}\n\n"
-            f"Attempt style: {variant_name}\n"
+            f"Attempt style: {name}\n"
             f"{variant_instruction}\n"
             "Follow the original problem exactly. Put the final answer inside \\boxed{}."
         )
@@ -304,11 +362,14 @@ def score_model_response(item: dict, response: str, judger) -> Optional[bool]:
 
 
 def main() -> None:
+    prompt_config_used = apply_prompt_config()
     Path(PRED_PATH).parent.mkdir(parents=True, exist_ok=True)
     progress_fp = open(PROGRESS_PATH, "w", buffering=1)
 
     data = [json.loads(line) for line in open(TEST_PATH)]
     log(f"Loaded {len(data)} test items from {TEST_PATH}", progress_fp)
+    if prompt_config_used:
+        log(f"Loaded GEPA prompt config from {prompt_config_used}", progress_fp)
 
     log("Loading tokenizer + vLLM engine (CUDA graph capture takes ~1-2 min)...", progress_fp)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
@@ -369,13 +430,13 @@ def main() -> None:
     )
     for item_idx, output in enumerate(baseline_outputs):
         candidate_sets[item_idx].append(output)
-        candidate_variant_sets[item_idx].append(baseline_variant[0])
+        candidate_variant_sets[item_idx].append(variant_name(baseline_variant))
 
     sampled_jobs = []
     sampled_prompts = []
     for item_idx, item in enumerate(data):
         for variant in CANDIDATE_VARIANTS[1:]:
-            sampled_jobs.append((item_idx, variant[0]))
+            sampled_jobs.append((item_idx, variant_name(variant)))
             sampled_prompts.append(build_candidate_prompt(tokenizer, item, variant))
 
     sampled_outputs, sampled_secs = generate_single_outputs(
@@ -386,9 +447,9 @@ def main() -> None:
         label="diverse sampled pass",
         progress_fp=progress_fp,
     )
-    for (item_idx, variant_name), output in zip(sampled_jobs, sampled_outputs):
+    for (item_idx, variant_label), output in zip(sampled_jobs, sampled_outputs):
         candidate_sets[item_idx].append(output)
-        candidate_variant_sets[item_idx].append(variant_name)
+        candidate_variant_sets[item_idx].append(variant_label)
 
     candidate_secs = time.time() - t0
     log(
@@ -503,7 +564,7 @@ def main() -> None:
         variant_lines = "\n".join(
             f"    {name:24s}: {variant_correct[name]:4d} / {variant_total[name]:4d}  "
             f"({variant_correct[name] / variant_total[name] * 100:.2f}%)"
-            for name, _ in CANDIDATE_VARIANTS
+            for name in (variant_name(variant) for variant in CANDIDATE_VARIANTS)
             if variant_total[name]
         )
         accuracy_block = (
@@ -521,9 +582,10 @@ def main() -> None:
     summary = (
         f"Diverse-candidate evaluation - {MODEL_ID} (no training)\n"
         f"GPU: {GPU_ID}\n"
+        f"Prompt config: {prompt_config_used or 'built-in defaults'}\n"
         f"Test set: {TEST_PATH} ({len(results)} items, {len(scored_results)} scored)\n"
         f"Candidates per prompt: {NUM_CANDIDATES}\n"
-        f"Candidate variants: {', '.join(name for name, _ in CANDIDATE_VARIANTS)}\n"
+        f"Candidate variants: {', '.join(variant_name(variant) for variant in CANDIDATE_VARIANTS)}\n"
         f"Generation time: {gen_secs / 60:.1f} min\n"
         f"  Candidate pass: {candidate_secs / 60:.1f} min\n"
         f"  Selector pass : {selection_secs / 60:.1f} min\n"

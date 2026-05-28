@@ -231,3 +231,58 @@ python -m py_compile run_eval.py
 
 The full model evaluation was not run during this change because it requires
 loading the GPU model.
+
+## GEPA Prompt Optimization
+
+A local GEPA-style optimizer has been added in `gepa_optimize.py`. It uses the
+same Qwen/vLLM stack and the existing `Judger`, but runs on labeled public
+examples instead of the held-out test set.
+
+### Summary of GEPA Changes
+
+- Added `gepa_optimize.py`, a standalone GEPA-style prompt optimizer for this
+  project.
+- The optimizer evaluates prompt candidates on labeled public examples, records
+  per-example correctness and feedback, reflects on failures, mutates prompts,
+  and keeps candidates using Pareto-style selection.
+- Added support in `run_eval.py` for loading an optimized prompt bundle through
+  the `GEPA_PROMPT_CONFIG` environment variable.
+- Preserved the normal `run_eval.py` behavior when `GEPA_PROMPT_CONFIG` is not
+  set.
+- The GEPA optimizer writes optimization artifacts under
+  `results/gepa_prompt_optimization/`, including traces, step logs, candidate
+  metadata, a summary file, and `best_prompt_config.json`.
+- The final held-out evaluation should still be run with `run_eval.py`; GEPA is
+  the prompt-learning step that happens before evaluation.
+
+The optimizer follows the main GEPA loop:
+
+1. Evaluate several prompt candidates on labeled examples.
+2. Keep per-example correctness and textual feedback as execution traces.
+3. Select a parent candidate from the Pareto frontier of candidates that cover
+   different examples.
+4. Ask the model to reflect on failures and mutate the prompt.
+5. Keep locally improved candidates, validate finalists, and export the best
+   prompt bundle.
+
+Run it with:
+
+```bash
+python gepa_optimize.py --train-path data/public.jsonl --max-metric-calls 150
+```
+
+The exported config is written to:
+
+```bash
+results/gepa_prompt_optimization/best_prompt_config.json
+```
+
+Use that config in the multishot evaluator with:
+
+```powershell
+$env:GEPA_PROMPT_CONFIG="results/gepa_prompt_optimization/best_prompt_config.json"
+python run_eval.py
+```
+
+If `GEPA_PROMPT_CONFIG` is not set, `run_eval.py` uses the built-in multishot
+prompts exactly as before.
