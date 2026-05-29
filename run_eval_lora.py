@@ -18,10 +18,10 @@ from typing import Optional
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
-GPU_ID        = "7"
+GPU_ID        = "0"
 TEST_PATH     = "data/test.jsonl"
-ADAPTER_PATH  = "adapters/qwen3-lora-v2"
-test_name     = "Trained LoRA v2 (RSFT)"
+ADAPTER_PATH  = "adapters/qwen3-lora-v6-mixed-fmtfix"
+test_name     = "Trained LoRA v6 (DeepMath fmtfix + RSFT)"
 PRED_PATH     = f"results/{test_name}/predictions.jsonl"
 ACC_PATH      = f"results/{test_name}/accuracy.txt"
 PROGRESS_PATH = f"results/{test_name}/progress.log"
