@@ -225,21 +225,36 @@ def main():
     log("Loading model...", progress_fp)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     llm = LLM(
-        model=MODEL_ID, quantization="bitsandbytes", load_format="bitsandbytes",
-        enable_lora=True, max_lora_rank=LORA_RANK, max_loras=1,
-        max_model_len=16384, gpu_memory_utilization=0.85,
-        trust_remote_code=True, max_num_seqs=MAX_NUM_SEQS,
+        model=MODEL_ID,
+        quantization="bitsandbytes",
+        load_format="bitsandbytes",
+        enable_prefix_caching=False,
+        gpu_memory_utilization=0.85,
+        max_model_len=16384,
+        trust_remote_code=True,
+        max_num_seqs=64,
+        max_num_batched_tokens=16384,
+        kv_cache_memory_bytes=14 * 1024**3,
+        enable_lora=True,
+        max_lora_rank=LORA_RANK,
+        max_loras=1,
     )
     lora_request = LoRARequest("mcq_v6", 1, MCQ_ADAPTER_PATH)
 
     deterministic_params = SamplingParams(max_tokens=MAX_TOKENS, temperature=0.0)
-    sampled_params = SamplingParams(max_tokens=MAX_TOKENS, temperature=0.6, top_p=0.95, top_k=20)
+    sampled_params = SamplingParams(
+        max_tokens=MAX_TOKENS,
+        temperature=0.6,
+        top_p=0.95,
+        top_k=20,
+        min_p=0.0,
+    )
 
     n = len(data)
     responses = [""] * n
     candidate_sets = [[] for _ in range(n)]
 
-    # 1. MCQ Inference (Single pass, LoRA, Temperature 0.6 to match standalone v6)
+    # 1. MCQ Inference (Single pass, LoRA, Temp 0.6 to match standalone v6)
     if mcq_indices:
         mcq_prompts = []
         for idx in mcq_indices:
@@ -247,6 +262,7 @@ def main():
             system, user = build_prompt(item["question"], item.get("options"))
             mcq_prompts.append(build_chat_prompt(tokenizer, system, user))
         
+        # Use sampled_params for MCQ
         mcq_outputs, _ = generate_single_outputs(llm, mcq_prompts, sampled_params, CHUNK_SIZE, "MCQ LoRA", progress_fp, lora_request)
         for idx, out in zip(mcq_indices, mcq_outputs):
             responses[idx] = out

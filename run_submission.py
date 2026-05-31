@@ -1,10 +1,11 @@
 """
 Consolidated Submission Script for CSE 151B Math Reasoning Competition.
-Matches the logic and prompting of run_eval_hybrid_mcq_lora_frq.py.
+Matches the logic and prompting of run_eval_v8_hybrid.py.
 
 Performs Hybrid Inference:
-- MCQ: LoRA v6 Adapter, sampled (temperature 0.6).
-- FRQ: Base Model, Multi-Prompt Ensemble (5 variants) + Selector.
+- MCQ: LoRA v6 Adapter, sampled (temperature 0.6), exact training prompt.
+- FRQ: Base Model, Multi-Prompt Ensemble (6 variants) + Weighted Majority Voting.
+- Prompting: Updated symbolic-first math prompt.
 - Output: submission.jsonl and submission.csv (id, response).
 """
 
@@ -21,88 +22,46 @@ from typing import Optional, List, Tuple
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
-GPU_ID        = "7"
+GPU_ID        = "0"
 MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
 LORA_RANK     = 16
 
 os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
-# We set this before importing vLLM/transformers
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 
 MAX_TOKENS    = 32768
 CHUNK_SIZE    = 32
-SELECT_CHUNK_SIZE = 16
-SELECT_MAX_TOKENS = 4096
-CANDIDATE_SNIPPET_CHARS = 1800
-MAX_NUM_SEQS = 64
+MAX_NUM_SEQS  = 64
 
+# Variants matching v8 strategy
 CANDIDATE_VARIANTS = [
-    ("baseline_deterministic", ""),
-    (
-        "answer_order_audit",
-        "First identify every answer the problem asks for, especially each real [ANS] "
-        "blank. Solve them in order and put all final sub-answers in one boxed list.",
-    ),
-    (
-        "formula_first_exact",
-        "Before arithmetic, write down the relevant formula or theorem. Keep exact "
-        "values until the final step and round only when the problem explicitly asks.",
-    ),
-    (
-        "independent_then_options",
-        "Solve independently before looking at answer choices. For multiple choice, "
-        "compare your result to every option and watch for common distractors.",
-    ),
-    (
-        "sanity_check",
-        "After solving, check units, signs, ranges, rounding, and whether the answer "
-        "is reasonable. Correct the final answer before boxing it if the check fails.",
-    ),
+    ("baseline_deterministic", "", 2), # weight = 2
+    ("answer_order_audit", "First identify every answer the problem asks for, especially each real [ANS] blank. Solve them in order and put all final sub-answers in one boxed list.", 1),
+    ("formula_first_exact", "Before arithmetic, write down the relevant formula or theorem. Keep exact values until the final step and round only when the problem explicitly asks.", 1),
+    ("independent_then_options", "Solve independently before looking at answer choices. For multiple choice, compare your result to every option and watch for common distractors.", 1),
+    ("sanity_check", "After solving, check units, signs, ranges, rounding, and whether the answer is reasonable. Correct the final answer before boxing it if the check fails.", 1),
+    ("concise_reasoning", "Solve the problem concisely. Keep the reasoning short and direct. Focus on the final result and skip unnecessary intermediate steps.", 1),
 ]
 
 # ── Prompts ──────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT_MATH = (
-    "You are an expert mathematician. Solve the problem step-by-step. "
-    "Put your final answer inside \\boxed{}. "
-    "If the problem has multiple sub-answers, separate them by commas inside a single \\boxed{}, "
-    "e.g. \\boxed{3, 7}. Symbolic expressions are acceptable; you do not need to evaluate to a "
-    "decimal unless the question explicitly asks for one.\n\n"
-    "Example 1 (single numeric answer):\n"
-    "Problem: What angle (in degrees) corresponds to 17.4 rotations around the unit circle? "
-    "17.4 rotations is an angle of [ANS] degrees.\n"
-    "Final answer: \\boxed{6264}\n\n"
-    "Example 2 (multiple sub-answers, one boxed):\n"
-    "Problem: For each of the following, find an angle phi satisfying the given equation "
-    "(round to the nearest 0.001 degrees, with 0 <= phi <= 90). "
-    "(a) sin(phi) = 0.561, phi = [ANS] degrees. "
-    "(b) cos(phi) = 0.612, phi = [ANS] degrees. "
-    "(c) tan(phi) = 721.863, phi = [ANS] degrees.\n"
-    "Final answer: \\boxed{34.125, 52.266, 89.921}\n\n"
-    "Example 3 (symbolic expression answer):\n"
-    "Problem: Find the half-life of an element which decays by 3.416% each day. "
-    "The half-life is [ANS] days.\n"
-    "Final answer: \\boxed{[ln(0.5)]/[ln(0.96584)]}"
-)
-
+# EXACTLY matches LoRA v6 fine-tuning prompt for MCQ
 SYSTEM_PROMPT_MCQ = (
     "You are an expert mathematician. "
     "Read the problem and the answer choices below, then select the single best answer. "
-    "Output ONLY the letter of your chosen option inside \\boxed{}, e.g. \\boxed{C}. "
-    "If you must reason, keep it brief and ensure the final letter is at the very end in its own box."
+    "Output ONLY the letter of your chosen option inside \\boxed{}, e.g. \\boxed{C}."
 )
 
-SYSTEM_PROMPT_SELECT = (
-    "You are an expert math judge. You will see one math problem and 5 candidate "
-    "solutions from the same model. Analyze each candidate for correctness and formatting. "
-    "If one or more candidates are correct, state which one is best (e.g., 'The best choice is Candidate #1.') "
-    "and provide the final answer clearly in a single \\boxed{} block. "
-    "If multiple sub-answers are requested, separate them by commas inside a single \\boxed{}, "
-    "e.g. \\boxed{ans1, ans2}. If all candidates are flawed but you can solve the "
-    "problem, return your corrected final answer. Return only the selected or corrected "
-    "final answer inside \\boxed{} at the end of your response."
+# Symbolic-emphasis prompt for FRQ (base model)
+SYSTEM_PROMPT_MATH = (
+    "You are an expert mathematician. Solve the problem step-by-step inside <think> tags. "
+    "Always provide the EXACT fractional or symbolic form first (e.g., \\frac{13}{9} or \\pi). "
+    "If the problem requests a decimal, you may provide it, but prioritize the exact form in the final \\boxed{}. "
+    "If the problem has multiple sub-answers, separate them by commas inside a single \\boxed{}.\n\n"
+    "Example 1:\nProblem: Simplify 38B^0.\nFinal answer: \\boxed{38}\n\n"
+    "Example 2:\nProblem: Find the slope between (-2,-5) and (7,8).\nFinal answer: \\boxed{\\frac{13}{9}}"
 )
 
 # ── Normalization Utilities ──────────────────────────────────────────────────
@@ -110,30 +69,6 @@ SYSTEM_PROMPT_SELECT = (
 def answer_visible_text(text: str) -> str:
     think_end = text.rfind("</think>")
     return text[think_end + len("</think>"):] if think_end >= 0 else text
-
-def visible_answer_text(text: str) -> str:
-    answer_text = answer_visible_text(text)
-    answer_text = answer_text.strip()
-    if len(answer_text) <= CANDIDATE_SNIPPET_CHARS:
-        return answer_text
-    return "... " + answer_text[-CANDIDATE_SNIPPET_CHARS:]
-
-def extract_boxed_values(text: str) -> list[str]:
-    values = []
-    start = 0
-    while True:
-        idx = text.find("\\boxed{", start)
-        if idx < 0: break
-        brace_start = idx + len("\\boxed{")
-        depth, i = 1, brace_start
-        while i < len(text) and depth > 0:
-            if text[i] == "{": depth += 1
-            elif text[i] == "}": depth -= 1
-            i += 1
-        if depth == 0:
-            values.append(text[brace_start:i - 1].strip())
-        start = i
-    return values
 
 def extract_boxed_group(text: str) -> list[str]:
     entries = []
@@ -184,17 +119,26 @@ def canonicalize_answer(answer: str, is_mcq: bool) -> str:
     lines = [l.strip() for l in answer_visible_text(answer).splitlines() if l.strip()]
     return normalize_tokens(lines[-1]) if lines else ""
 
-def majority_vote_answer(candidates: list[str], is_mcq: bool) -> str:
-    counts = Counter()
+# ── Weighted Consistency Logic ───────────────────────────────────────────────
+
+def weighted_majority_vote(candidates: list[str], variants: list[tuple], is_mcq: bool) -> str:
+    weights = [v[2] for v in variants]
+    counts = {}
     canonical_to_raw = {}
-    for cand in candidates:
+    
+    for cand, weight in zip(candidates, weights):
         key = canonicalize_answer(cand, is_mcq)
         if not key: continue
-        counts[key] += 1
-        if key not in canonical_to_raw: canonical_to_raw[key] = cand
-    if not counts: return candidates[0] if candidates else ""
-    best_key = counts.most_common(1)[0][0]
-    return canonical_to_raw[best_key] # Returns FULL raw response
+        counts[key] = counts.get(key, 0) + weight
+        if key not in canonical_to_raw:
+            canonical_to_raw[key] = cand
+        if weight > 1: # Prefer baseline if it wins
+            canonical_to_raw[key] = cand
+
+    if not counts:
+        return candidates[0] if candidates else ""
+    best_key = max(counts, key=counts.get)
+    return canonical_to_raw[best_key]
 
 # ── Prompt Building ──────────────────────────────────────────────────────────
 
@@ -216,7 +160,7 @@ def build_prompt(question: str, options: Optional[list]) -> tuple[str, str]:
     return SYSTEM_PROMPT_MATH, question
 
 def build_candidate_prompt(tokenizer, item: dict, variant: tuple) -> str:
-    name, instruction = variant
+    name, instruction, weight = variant
     system, user = build_prompt(item["question"], item.get("options"))
     if instruction:
         user = (
@@ -224,23 +168,6 @@ def build_candidate_prompt(tokenizer, item: dict, variant: tuple) -> str:
             "Follow the original problem exactly. Put the final answer inside \\boxed{}."
         )
     return build_chat_prompt(tokenizer, system, user)
-
-def answer_format_hint(item: dict) -> str:
-    if item.get("options"): return "This is a multiple-choice problem. The final answer should be one option letter."
-    blank_count = item["question"].count("[ANS]")
-    if blank_count == 1: return "This appears to request one free-form answer."
-    if blank_count > 1:
-        return f"The prompt contains {blank_count} [ANS] placeholders. Answer the actual requested blanks in order."
-    return "This is a free-form problem. Follow the requested final-answer format."
-
-def selected_or_fallback(selector_response: str, candidates: list[str], is_mcq: bool) -> str:
-    m = re.search(r"\b(?:candidate|option|choice)\s*#?\s*([1-5])\b", selector_response, re.IGNORECASE)
-    if m:
-        idx = int(m.group(1)) - 1
-        if 0 <= idx < len(candidates): return candidates[idx] # Full candidate text
-    if "\\boxed{" in answer_visible_text(selector_response):
-        return selector_response # Full selector text if it provided a corrected answer
-    return majority_vote_answer(candidates, is_mcq)
 
 # ── Utils ────────────────────────────────────────────────────────────────────
 
@@ -283,20 +210,34 @@ def main():
     log("Loading model and tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     llm = LLM(
-        model=MODEL_ID, quantization="bitsandbytes", load_format="bitsandbytes",
-        enable_lora=True, max_lora_rank=LORA_RANK, max_loras=1,
-        max_model_len=16384, gpu_memory_utilization=args.gpu_memory,
-        trust_remote_code=True, max_num_seqs=MAX_NUM_SEQS,
+        model=MODEL_ID,
+        quantization="bitsandbytes",
+        load_format="bitsandbytes",
+        enable_prefix_caching=False,
+        gpu_memory_utilization=args.gpu_memory,
+        max_model_len=16384,
+        trust_remote_code=True,
+        max_num_seqs=64,
+        max_num_batched_tokens=16384,
+        kv_cache_memory_bytes=14 * 1024**3,
+        enable_lora=True,
+        max_lora_rank=LORA_RANK,
+        max_loras=1,
     )
     lora_request = LoRARequest("mcq_v6", 1, MCQ_ADAPTER_PATH)
 
     deterministic_params = SamplingParams(max_tokens=MAX_TOKENS, temperature=0.0)
-    sampled_params = SamplingParams(max_tokens=MAX_TOKENS, temperature=0.6, top_p=0.95, top_k=20)
-    select_params = SamplingParams(max_tokens=SELECT_MAX_TOKENS, temperature=0.0)
+    sampled_params = SamplingParams(
+        max_tokens=MAX_TOKENS,
+        temperature=0.6,
+        top_p=0.95,
+        top_k=20,
+        min_p=0.0,
+    )
 
     results = [""] * len(data)
 
-    # 1. MCQ Inference (LoRA, sampled)
+    # 1. MCQ Inference (Single pass, LoRA, Temp 0.6)
     if mcq_indices:
         mcq_prompts = []
         for idx in mcq_indices:
@@ -306,52 +247,28 @@ def main():
         
         outputs = generate_single_outputs(llm, mcq_prompts, sampled_params, CHUNK_SIZE, "MCQ LoRA pass", lora_request)
         for idx, out in zip(mcq_indices, outputs):
-            results[idx] = out # Preserve FULL output
+            results[idx] = out
 
-    # 2. FRQ Inference (Ensemble)
+    # 2. FRQ Inference (Weighted Ensemble, Base Model)
     if frq_indices:
         frq_items = [data[i] for i in frq_indices]
-        candidate_sets = [[] for _ in frq_items]
+        frq_candidate_sets = [[] for _ in range(len(frq_indices))]
         
-        # Baseline (deterministic)
-        log("FRQ Baseline pass...")
-        baseline_prompts = [build_candidate_prompt(tokenizer, item, CANDIDATE_VARIANTS[0]) for item in frq_items]
-        baseline_outputs = generate_single_outputs(llm, baseline_prompts, deterministic_params, CHUNK_SIZE, "FRQ Baseline")
-        for i, out in enumerate(baseline_outputs): candidate_sets[i].append(out)
+        # Baseline (Weight 2, Deterministic)
+        v = CANDIDATE_VARIANTS[0]
+        prompts = [build_candidate_prompt(tokenizer, item, v) for item in frq_items]
+        outs = generate_single_outputs(llm, prompts, deterministic_params, CHUNK_SIZE, f"FRQ {v[0]}")
+        for i, out in enumerate(outs): frq_candidate_sets[i].append(out)
         
-        # Sampled variants
-        for variant in CANDIDATE_VARIANTS[1:]:
-            log(f"FRQ Variant: {variant[0]}...")
-            v_prompts = [build_candidate_prompt(tokenizer, item, variant) for item in frq_items]
-            v_outputs = generate_single_outputs(llm, v_prompts, sampled_params, CHUNK_SIZE, f"FRQ {variant[0]}")
-            for i, out in enumerate(v_outputs): candidate_sets[i].append(out)
+        # Variants (Weight 1, Sampled 0.6)
+        for v in CANDIDATE_VARIANTS[1:]:
+            prompts = [build_candidate_prompt(tokenizer, item, v) for item in frq_items]
+            outs = generate_single_outputs(llm, prompts, sampled_params, CHUNK_SIZE, f"FRQ {v[0]}")
+            for i, out in enumerate(outs): frq_candidate_sets[i].append(out)
         
-        # Selection
-        log("FRQ Selection pass...")
-        variant_names = [v[0] for v in CANDIDATE_VARIANTS]
-        selection_prompts = []
-        for item, cands in zip(frq_items, candidate_sets):
-            problem = format_problem(item["question"], item.get("options"))
-            candidate_blocks = []
-            for idx, (candidate, v_name) in enumerate(zip(cands, variant_names), start=1):
-                boxed_values = extract_boxed_values(candidate)
-                boxed_text = ", ".join(boxed_values[-3:]) if boxed_values else "(no boxed answer found)"
-                candidate_blocks.append(
-                    f"Candidate {idx} ({v_name})\n"
-                    f"Extracted boxed answer(s): {boxed_text}\n"
-                    f"Visible response excerpt:\n{visible_answer_text(candidate)}"
-                )
-            user = (
-                f"Problem:\n{problem}\n\nAnswer format hint: {answer_format_hint(item)}\n\n"
-                "Candidate solutions:\n\n" + "\n\n".join(candidate_blocks) +
-                "\n\nChoose the best final answer from these candidates, or correct them if needed. "
-                "Output only that answer in the required \\boxed{} format."
-            )
-            selection_prompts.append(build_chat_prompt(tokenizer, SYSTEM_PROMPT_SELECT, user))
-        
-        selector_outputs = generate_single_outputs(llm, selection_prompts, select_params, SELECT_CHUNK_SIZE, "FRQ Selection")
-        for idx, sel_out, cands in zip(frq_indices, selector_outputs, candidate_sets):
-            results[idx] = selected_or_fallback(sel_out, cands, is_mcq=False)
+        # Weighted Voting
+        for i, idx in enumerate(frq_indices):
+            results[idx] = weighted_majority_vote(frq_candidate_sets[i], CANDIDATE_VARIANTS, is_mcq=False)
 
     # 3. Export
     log(f"Saving JSONL results to {args.output_jsonl}...")
