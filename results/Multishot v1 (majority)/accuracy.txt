@@ -1,0 +1,7 @@
+Majority-vote scoring of multishot candidates (no LLM selector)
+Source: results/Multishot v1/predictions.jsonl
+Test set size: 226
+
+  MCQ        :   57 /   81  (70.37%)
+  Free-form  :   84 /  145  (57.93%)
+  Overall    :  141 /  226  (62.39%)

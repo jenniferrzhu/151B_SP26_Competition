@@ -1,0 +1,22 @@
+Diverse-candidate evaluation - Qwen/Qwen3-4B-Thinking-2507 (no training)
+GPU: 7
+Prompt config: results/gepa_prompt_optimization/best_prompt_config.json
+Test set: data/test.jsonl (226 items, 226 scored)
+Candidates per prompt: 5
+Candidate variants: gepa_best_answer_order_audit, gepa_pareto_1_baseline_deterministic, gepa_pareto_2_formula_first_exact, gepa_pareto_3_independent_then_options, gepa_pareto_4_sanity_check
+Generation time: 278.5 min
+  Candidate pass: 253.8 min
+  Selector pass : 24.7 min
+
+  MCQ        :   53 /   81  (65.43%)
+  Free-form  :   85 /  145  (58.62%)
+  Overall    :  138 /  226  (61.06%)
+  Oracle@5:  157 /  226  (69.47%)
+  Selector missed available correct candidate:   20
+
+  Candidate accuracy by variant:
+    gepa_best_answer_order_audit:  139 /  226  (61.50%)
+    gepa_pareto_1_baseline_deterministic:  140 /  226  (61.95%)
+    gepa_pareto_2_formula_first_exact:  138 /  226  (61.06%)
+    gepa_pareto_3_independent_then_options:  142 /  226  (62.83%)
+    gepa_pareto_4_sanity_check:  140 /  226  (61.95%)

@@ -1,0 +1,226 @@
+{"id": 60, "is_mcq": false, "gold": ["38"], "response": "\\boxed{38}", "correct": true}
+{"id": 1052, "is_mcq": false, "gold": ["120", "135", "240", "450", "360"], "response": "\\boxed{120, 135, 240, 450, 360}", "correct": true}
+{"id": 724, "is_mcq": false, "gold": ["NO", "YES", "YES", "Yes", "No"], "response": "\\boxed{NO, YES, YES, YES, NO}", "correct": true}
+{"id": 72, "is_mcq": false, "gold": ["190", "250"], "response": "\\boxed{190, 250}", "correct": true}
+{"id": 7, "is_mcq": false, "gold": ["1.44444444444444"], "response": "\\boxed{1.65714285714286}", "correct": false}
+{"id": 225, "is_mcq": false, "gold": ["7.77"], "response": "\\boxed{777}", "correct": false}
+{"id": 909, "is_mcq": false, "gold": ["((87 - 71)/(176 - 118))*(N - 176) + 87", "80.6551724137931"], "response": "\\boxed{0.933333333333333*N+64.6666666666667, 83}", "correct": false}
+{"id": 235, "is_mcq": true, "gold": "A", "response": "\\boxed{H}", "correct": false}
+{"id": 567, "is_mcq": false, "gold": ["9047"], "response": "\\boxed{10000}", "correct": false}
+{"id": 602, "is_mcq": true, "gold": "D", "response": "\\boxed{D}", "correct": true}
+{"id": 21, "is_mcq": false, "gold": ["3*t^1*(1-t)^2", "6*t^2*(1-t)^2", "10*t^3*(1-t)^2", "7*t^6*(1-t)^1", "70*t^4*(1-t)^4"], "response": "\\boxed{3*t^2*(1-t), 4*t^3*(1-t)^2, 5*t^4*(1-t)^3, 7*t^6*(1-t), 8*t^4*(1-t)^4}", "correct": false}
+{"id": 346, "is_mcq": false, "gold": ["A", "A", "B"], "response": "\\boxed{A, A, B}", "correct": true}
+{"id": 1053, "is_mcq": true, "gold": "F", "response": "\\boxed{B}", "correct": false}
+{"id": 230, "is_mcq": false, "gold": ["C", "E", "C", "0.308538", "B"], "response": "\\boxed{C, F, E, 0.0072, B}", "correct": false}
+{"id": 253, "is_mcq": true, "gold": "F", "response": "\\boxed{H}", "correct": false}
+{"id": 123, "is_mcq": true, "gold": "B", "response": "\\boxed{C}", "correct": false}
+{"id": 462, "is_mcq": false, "gold": ["45", "182"], "response": "\\boxed{45, 182}", "correct": true}
+{"id": 529, "is_mcq": false, "gold": ["72"], "response": "\\boxed{48}", "correct": false}
+{"id": 448, "is_mcq": false, "gold": ["(11.5678, 0.432236)"], "response": "\\boxed{6+sqrt(29), 6-sqrt(29)}", "correct": false}
+{"id": 975, "is_mcq": false, "gold": ["2.4", "-1.25"], "response": "\\boxed{3, 5}", "correct": false}
+{"id": 665, "is_mcq": true, "gold": "C", "response": "\\boxed{A}", "correct": false}
+{"id": 687, "is_mcq": true, "gold": "A", "response": "\\boxed{C}", "correct": false}
+{"id": 408, "is_mcq": false, "gold": ["7", "1", "6", "-3", "7", "1", "6", "-24", "-3", "-18", "9"], "response": "\\boxed{7+1, 4, 2, -6, 7, 1, -3, 7, 4, -6, 7, -12, 18, -18}", "correct": false}
+{"id": 319, "is_mcq": false, "gold": ["41"], "response": "\\boxed{43}", "correct": false}
+{"id": 730, "is_mcq": false, "gold": ["-736"], "response": "\\boxed{12760-1928*7}", "correct": false}
+{"id": 205, "is_mcq": false, "gold": ["371"], "response": "\\boxed{246}", "correct": false}
+{"id": 706, "is_mcq": false, "gold": ["2.74336", "0.0031"], "response": "\\boxed{1.76945717951336, 0.0382516597053253}", "correct": false}
+{"id": 1070, "is_mcq": true, "gold": "J", "response": "\\boxed{J}", "correct": true}
+{"id": 773, "is_mcq": false, "gold": ["A", "C", "B", "D"], "response": "\\boxed{A, C, B, D}", "correct": true}
+{"id": 972, "is_mcq": true, "gold": "C", "response": "\\boxed{H}", "correct": false}
+{"id": 216, "is_mcq": false, "gold": ["C", "A", "A"], "response": "\\boxed{C, A, A}", "correct": true}
+{"id": 433, "is_mcq": true, "gold": "G", "response": "\\boxed{G}", "correct": true}
+{"id": 621, "is_mcq": true, "gold": "F", "response": "\\boxed{B}", "correct": false}
+{"id": 893, "is_mcq": false, "gold": ["A", "A"], "response": "\\boxed{C, A}", "correct": false}
+{"id": 540, "is_mcq": false, "gold": ["0.025641"], "response": "\\boxed{1/39}", "correct": false}
+{"id": 271, "is_mcq": true, "gold": "C", "response": "\\boxed{F}", "correct": false}
+{"id": 169, "is_mcq": false, "gold": ["5730"], "response": "\\boxed{5730}", "correct": true}
+{"id": 562, "is_mcq": true, "gold": "H", "response": "\\boxed{H}", "correct": true}
+{"id": 486, "is_mcq": true, "gold": "J", "response": "\\boxed{A}", "correct": false}
+{"id": 675, "is_mcq": false, "gold": ["153.484937503751"], "response": "\\boxed{59.0889471014358}", "correct": false}
+{"id": 131, "is_mcq": true, "gold": "J", "response": "\\boxed{A}", "correct": false}
+{"id": 128, "is_mcq": false, "gold": ["F", "T", "T", "F", "F", "T"], "response": "\\boxed{F, T, T, F, F, T}", "correct": true}
+{"id": 784, "is_mcq": true, "gold": "D", "response": "\\boxed{C}", "correct": false}
+{"id": 545, "is_mcq": false, "gold": ["36.8*1.013^25-36.8", "36.8*1.013^(2*25)-36.8*1.013^25", "AB"], "response": "\\boxed{2.45322, 4.03727, B}", "correct": false}
+{"id": 1073, "is_mcq": true, "gold": "D", "response": "\\boxed{F}", "correct": false}
+{"id": 70, "is_mcq": false, "gold": ["4.64257581030492"], "response": "\\boxed{4.64225}", "correct": false}
+{"id": 835, "is_mcq": false, "gold": ["7.78"], "response": "\\boxed{7.78}", "correct": true}
+{"id": 497, "is_mcq": false, "gold": ["8", "24"], "response": "\\boxed{4, 24}", "correct": false}
+{"id": 749, "is_mcq": false, "gold": ["19.7307692307692"], "response": "\\boxed{13.5}", "correct": false}
+{"id": 87, "is_mcq": true, "gold": "I", "response": "\\boxed{I}", "correct": true}
+{"id": 80, "is_mcq": false, "gold": ["A"], "response": "\\boxed{C}", "correct": false}
+{"id": 580, "is_mcq": true, "gold": "D", "response": "\\boxed{C}", "correct": false}
+{"id": 959, "is_mcq": true, "gold": "F", "response": "\\boxed{A}", "correct": false}
+{"id": 246, "is_mcq": true, "gold": "A", "response": "\\boxed{C}", "correct": false}
+{"id": 59, "is_mcq": true, "gold": "B", "response": "\\boxed{F}", "correct": false}
+{"id": 245, "is_mcq": false, "gold": ["40-640*v"], "response": "\\boxed{40*(v-16*v^2)/v}", "correct": true}
+{"id": 314, "is_mcq": false, "gold": ["no", "yes", "no"], "response": "\\boxed{No, Yes, Yes}", "correct": false}
+{"id": 826, "is_mcq": true, "gold": "E", "response": "\\boxed{G}", "correct": false}
+{"id": 851, "is_mcq": false, "gold": ["21"], "response": "\\boxed{24}", "correct": false}
+{"id": 899, "is_mcq": false, "gold": ["1", "1/27"], "response": "\\boxed{1, 1/27}", "correct": true}
+{"id": 371, "is_mcq": true, "gold": "C", "response": "\\boxed{B}", "correct": false}
+{"id": 951, "is_mcq": false, "gold": ["-15/13", "-13/15"], "response": "\\boxed{-15/13, -13/15}", "correct": true}
+{"id": 1001, "is_mcq": true, "gold": "C", "response": "\\boxed{C}", "correct": true}
+{"id": 19, "is_mcq": true, "gold": "E", "response": "\\boxed{G}", "correct": false}
+{"id": 500, "is_mcq": true, "gold": "E", "response": "\\boxed{J}", "correct": false}
+{"id": 331, "is_mcq": false, "gold": ["1457", "1587", "1142", "1376"], "response": "\\boxed{1457, 1587, 1142, 1876}", "correct": false}
+{"id": 613, "is_mcq": false, "gold": ["91.5"], "response": "\\boxed{83}", "correct": false}
+{"id": 0, "is_mcq": false, "gold": ["325*(1+325)"], "response": "\\boxed{325*326}", "correct": true}
+{"id": 1087, "is_mcq": true, "gold": "I", "response": "\\boxed{A}", "correct": false}
+{"id": 543, "is_mcq": false, "gold": ["right 3 units", "no vertical shift", "no horizontal shift", "up 1 unit", "right 1 unit", "up 2 units", "left 2 units", "down 1 unit"], "response": "\\boxed{right 3 units, up 0 units, right 1 units, up 8 units, left 2 units, down 1 unit}", "correct": false}
+{"id": 944, "is_mcq": true, "gold": "A", "response": "\\boxed{B}", "correct": false}
+{"id": 797, "is_mcq": false, "gold": ["237947.502443291", "12017.550628449"], "response": "\\boxed{150000, 3300000}", "correct": false}
+{"id": 1058, "is_mcq": false, "gold": ["22.6219"], "response": "\\boxed{22.6208}", "correct": false}
+{"id": 165, "is_mcq": true, "gold": "D", "response": "\\boxed{D}", "correct": true}
+{"id": 989, "is_mcq": true, "gold": "F", "response": "\\boxed{F}", "correct": true}
+{"id": 382, "is_mcq": false, "gold": ["70", "C", "(3, 9)", "C"], "response": "\\boxed{70, C, C, 3, 9, C}", "correct": false}
+{"id": 156, "is_mcq": false, "gold": ["40.25", "45"], "response": "\\boxed{40.8571428571429, 45}", "correct": false}
+{"id": 203, "is_mcq": false, "gold": ["28*(4*t+1.3)**2 - 132*(4*t+1.3) + 59", "7.20947473332645"], "response": "\\boxed{28*(4*t+1.3)^2-132*(4*t+1.3)+59, 5.00729}", "correct": false}
+{"id": 623, "is_mcq": true, "gold": "A", "response": "\\boxed{H}", "correct": false}
+{"id": 987, "is_mcq": false, "gold": ["2.947", "2.947*1.26/[sqrt(16)]"], "response": "\\boxed{2.97688559443769, 0.798108322353869}", "correct": false}
+{"id": 654, "is_mcq": true, "gold": "I", "response": "\\boxed{D}", "correct": false}
+{"id": 861, "is_mcq": false, "gold": ["11/5"], "response": "\\boxed{11/5}", "correct": true}
+{"id": 305, "is_mcq": false, "gold": ["0.875", "-0.75"], "response": "\\boxed{0.841471, -7.56802}", "correct": false}
+{"id": 640, "is_mcq": false, "gold": ["4/9"], "response": "\\boxed{4/9}", "correct": true}
+{"id": 891, "is_mcq": true, "gold": "H", "response": "\\boxed{D}", "correct": false}
+{"id": 108, "is_mcq": false, "gold": ["84"], "response": "\\boxed{0}", "correct": false}
+{"id": 934, "is_mcq": false, "gold": ["497-112*sqrt(7)"], "response": "\\boxed{7^2-2*7*8*sqrt(7)+8^2*7}", "correct": false}
+{"id": 519, "is_mcq": true, "gold": "A", "response": "\\boxed{A}", "correct": true}
+{"id": 182, "is_mcq": true, "gold": "F", "response": "\\boxed{A}", "correct": false}
+{"id": 780, "is_mcq": false, "gold": ["B", "2.33", "0.0099", "A", "76.2161", "88.9839"], "response": "\\boxed{B, 1.69, 0.0809, A, 71.42, 88.58}", "correct": false}
+{"id": 512, "is_mcq": false, "gold": ["-13", "-13", "3"], "response": "\\boxed{-13, -13, 3}", "correct": true}
+{"id": 269, "is_mcq": false, "gold": ["5.93295878967653"], "response": "\\boxed{8.94427190999916}", "correct": false}
+{"id": 736, "is_mcq": false, "gold": ["C"], "response": "\\boxed{C}", "correct": true}
+{"id": 896, "is_mcq": true, "gold": "F", "response": "\\boxed{B}", "correct": false}
+{"id": 739, "is_mcq": true, "gold": "D", "response": "\\boxed{D}", "correct": true}
+{"id": 976, "is_mcq": false, "gold": ["66.6614285714286"], "response": "\\boxed{254.214066999999}", "correct": false}
+{"id": 3, "is_mcq": false, "gold": ["5/8"], "response": "\\boxed{5/8}", "correct": true}
+{"id": 464, "is_mcq": false, "gold": ["5*x^4-3*x^3+14*x^2+20"], "response": "\\boxed{-3*x^3+14*x^2+2.5*x-20}", "correct": false}
+{"id": 1084, "is_mcq": false, "gold": ["C"], "response": "\\boxed{B}", "correct": false}
+{"id": 445, "is_mcq": false, "gold": ["8.90117918517108", "22.6980069221863"], "response": "\\boxed{2.75043, 43.0112}", "correct": false}
+{"id": 300, "is_mcq": false, "gold": ["2.43", "0.105", "B", "5.76", "0.008", "B"], "response": "\\boxed{2.43, 0.105, B, 5.76, 0.008, B}", "correct": true}
+{"id": 1055, "is_mcq": false, "gold": ["43", "200.194444444444", "14.1490086028826"], "response": "\\boxed{52-9, 93.7777777777778, 9.68400813354731}", "correct": false}
+{"id": 348, "is_mcq": true, "gold": "G", "response": "\\boxed{D}", "correct": false}
+{"id": 656, "is_mcq": false, "gold": ["4.96812538338943", "1.88079", "A", "1.29535405916128", "3.30464594083872"], "response": "\\boxed{2.57129, 1.74906, A, 2.57216, 3.56157}", "correct": false}
+{"id": 787, "is_mcq": false, "gold": ["(117*x-sqrt(x/18875), 117*x+sqrt(x/18875))"], "response": "\\boxed{(117*x+sqrt(151*(117*x)^2+x/125))/151, (117*x-sqrt(151*(117*x)^2+x/125))/151}", "correct": false}
+{"id": 273, "is_mcq": false, "gold": ["-119", "NO", "-17", "no", "-7", "no", "-2.42857142857143", "no", "-1", "no", "-0.142857142857143", "no", "0.142857142857143", "no", "1", "no", "2.42857142857143", "no", "7", "no", "17", "no", "119", "no"], "response": "\\boxed{-17/7, no, -11/7, no, -7/7, no, -1/7, no, 1/7, no, 1, no, 7, no, 11/7, no, 17/7, no}", "correct": false}
+{"id": 768, "is_mcq": false, "gold": ["10", "8.8", "5.5", "88"], "response": "\\boxed{10, 8.8, 5.5, 77.44}", "correct": false}
+{"id": 549, "is_mcq": true, "gold": "G", "response": "\\boxed{I}", "correct": false}
+{"id": 906, "is_mcq": true, "gold": "F", "response": "\\boxed{B}", "correct": false}
+{"id": 698, "is_mcq": false, "gold": ["5/8"], "response": "\\boxed{5/16}", "correct": false}
+{"id": 117, "is_mcq": false, "gold": ["17/60"], "response": "\\boxed{0.158333333333333}", "correct": false}
+{"id": 738, "is_mcq": false, "gold": ["13", "18"], "response": "\\boxed{14, 53}", "correct": false}
+{"id": 1100, "is_mcq": false, "gold": ["13.8196382007634"], "response": "\\boxed{14.0757296803045}", "correct": false}
+{"id": 11, "is_mcq": true, "gold": "G", "response": "\\boxed{C}", "correct": false}
+{"id": 965, "is_mcq": false, "gold": ["A"], "response": "\\boxed{B}", "correct": false}
+{"id": 881, "is_mcq": false, "gold": ["18"], "response": "\\boxed{18}", "correct": true}
+{"id": 566, "is_mcq": false, "gold": ["5", "333.333333333333"], "response": "\\boxed{5, 333.333333333333}", "correct": true}
+{"id": 994, "is_mcq": false, "gold": ["A", "C"], "response": "\\boxed{A, C}", "correct": true}
+{"id": 257, "is_mcq": true, "gold": "F", "response": "\\boxed{F}", "correct": true}
+{"id": 1089, "is_mcq": false, "gold": ["707.142857142857"], "response": "\\boxed{1100}", "correct": false}
+{"id": 479, "is_mcq": false, "gold": ["-0.3", "decreased", "0.3"], "response": "\\boxed{-0.3, decreased, 0.3}", "correct": true}
+{"id": 1020, "is_mcq": false, "gold": ["469.767441860465", "27199.5348837209"], "response": "\\boxed{1300, 74439}", "correct": false}
+{"id": 610, "is_mcq": false, "gold": ["16"], "response": "\\boxed{24}", "correct": false}
+{"id": 781, "is_mcq": false, "gold": ["46.2", "462", "4620"], "response": "\\boxed{46.2, 462, 4620}", "correct": true}
+{"id": 788, "is_mcq": false, "gold": ["C", "D", "E", "A", "B"], "response": "\\boxed{E, B, C, D, A}", "correct": false}
+{"id": 130, "is_mcq": true, "gold": "F", "response": "\\boxed{E}", "correct": false}
+{"id": 1118, "is_mcq": false, "gold": "2^{999}-2^{499}", "response": "\\boxed{501}", "correct": false}
+{"id": 327, "is_mcq": false, "gold": ["1060"], "response": "\\boxed{106}", "correct": false}
+{"id": 313, "is_mcq": true, "gold": "B", "response": "\\boxed{H}", "correct": false}
+{"id": 224, "is_mcq": false, "gold": ["8*x^4+6*x", "csc(x)"], "response": "\\boxed{8*x^4+6*x, csc(x)}", "correct": true}
+{"id": 96, "is_mcq": true, "gold": "B", "response": "\\boxed{G}", "correct": false}
+{"id": 186, "is_mcq": false, "gold": ["8*x^5*y^9"], "response": "\\boxed{8*x^5*y^9}", "correct": true}
+{"id": 1010, "is_mcq": false, "gold": ["C", "B", "A", "D"], "response": "\\boxed{C, B, A, D}", "correct": true}
+{"id": 283, "is_mcq": false, "gold": ["78"], "response": "\\boxed{78}", "correct": true}
+{"id": 1057, "is_mcq": false, "gold": ["(0,4.5)"], "response": "\\boxed{(0, 4.5)}", "correct": true}
+{"id": 741, "is_mcq": true, "gold": "E", "response": "\\boxed{A}", "correct": false}
+{"id": 817, "is_mcq": true, "gold": "C", "response": "\\boxed{C}", "correct": true}
+{"id": 877, "is_mcq": false, "gold": ["A", "A", "C", "A"], "response": "\\boxed{A, A, C, A}", "correct": true}
+{"id": 538, "is_mcq": false, "gold": ["0.265625"], "response": "\\boxed{0.25}", "correct": false}
+{"id": 505, "is_mcq": false, "gold": ["2"], "response": "\\boxed{2.38552560782232}", "correct": false}
+{"id": 1120, "is_mcq": false, "gold": ["16", "(-10, 10)"], "response": "\\boxed{16, 25}", "correct": false}
+{"id": 542, "is_mcq": true, "gold": "G", "response": "\\boxed{E}", "correct": false}
+{"id": 292, "is_mcq": false, "gold": ["200000", "219"], "response": "\\boxed{61428.5714285714, 99.2142857142857}", "correct": false}
+{"id": 939, "is_mcq": false, "gold": ["14.2"], "response": "\\boxed{15.7}", "correct": false}
+{"id": 810, "is_mcq": true, "gold": "E", "response": "\\boxed{A}", "correct": false}
+{"id": 1022, "is_mcq": false, "gold": ["5"], "response": "\\boxed{1.6}", "correct": false}
+{"id": 435, "is_mcq": false, "gold": ["518.28752114221"], "response": "\\boxed{456.371175267547}", "correct": false}
+{"id": 644, "is_mcq": false, "gold": ["2.99570066237461"], "response": "\\boxed{arctan(350/76*60)}", "correct": false}
+{"id": 432, "is_mcq": false, "gold": ["log10(W/w)", "10^(8.8-7.1)"], "response": "\\boxed{log10(W/w), 100}", "correct": false}
+{"id": 135, "is_mcq": false, "gold": ["5*sqrt(11)"], "response": "\\boxed{5*sqrt(11)}", "correct": false}
+{"id": 548, "is_mcq": false, "gold": ["14", "3", "3"], "response": "\\boxed{10, 5, 5}", "correct": false}
+{"id": 821, "is_mcq": true, "gold": "E", "response": "\\boxed{B}", "correct": false}
+{"id": 646, "is_mcq": false, "gold": ["0.650277"], "response": "\\boxed{0.5}", "correct": false}
+{"id": 1115, "is_mcq": false, "gold": ["[5/9*(-32+-2),5/9*(-32+29)]"], "response": "\\boxed{60.2}", "correct": false}
+{"id": 469, "is_mcq": false, "gold": ["(-infinity,60]", "60", "[0,60]"], "response": "\\boxed{35+3.1*x, <=, 221, 60, [0, 60]}", "correct": false}
+{"id": 114, "is_mcq": true, "gold": "A", "response": "\\boxed{C}", "correct": false}
+{"id": 664, "is_mcq": false, "gold": ["D", "A"], "response": "\\boxed{D, A}", "correct": true}
+{"id": 449, "is_mcq": true, "gold": "G", "response": "\\boxed{D}", "correct": false}
+{"id": 552, "is_mcq": true, "gold": "J", "response": "\\boxed{J}", "correct": true}
+{"id": 777, "is_mcq": true, "gold": "B", "response": "\\boxed{C}", "correct": false}
+{"id": 946, "is_mcq": true, "gold": "A", "response": "\\boxed{I}", "correct": false}
+{"id": 334, "is_mcq": true, "gold": "F", "response": "\\boxed{F}", "correct": true}
+{"id": 1122, "is_mcq": false, "gold": ["2*pi/3+k*pi"], "response": "\\boxed{(pi/2)*(-1 + 2*k)}", "correct": false}
+{"id": 350, "is_mcq": false, "gold": ["77.606"], "response": "\\boxed{77.606}", "correct": true}
+{"id": 146, "is_mcq": true, "gold": "F", "response": "\\boxed{F}", "correct": true}
+{"id": 546, "is_mcq": false, "gold": ["1"], "response": "\\boxed{1}", "correct": true}
+{"id": 429, "is_mcq": false, "gold": ["8", "e^2", "growth"], "response": "\\boxed{8, 7.38905609893065, growth}", "correct": false}
+{"id": 727, "is_mcq": false, "gold": ["A", "A", "B"], "response": "\\boxed{A, A, B}", "correct": true}
+{"id": 758, "is_mcq": false, "gold": ["A", "C"], "response": "\\boxed{C, A}", "correct": false}
+{"id": 333, "is_mcq": false, "gold": ["185.53"], "response": "\\boxed{183.157894736842}", "correct": false}
+{"id": 747, "is_mcq": false, "gold": ["3", "2", "2"], "response": "\\boxed{3, 2, 0}", "correct": false}
+{"id": 928, "is_mcq": true, "gold": "F", "response": "\\boxed{F}", "correct": true}
+{"id": 1099, "is_mcq": true, "gold": "J", "response": "\\boxed{A}", "correct": false}
+{"id": 1093, "is_mcq": true, "gold": "J", "response": "\\boxed{J}", "correct": true}
+{"id": 206, "is_mcq": false, "gold": ["-9/8"], "response": "\\boxed{-9/8}", "correct": true}
+{"id": 1111, "is_mcq": false, "gold": ["2.89827534923789", "1.64485", "B", "4.04320105207183", "-2.32635", "B", "2.89827534923789", "1.95996", "-1.95996", "A"], "response": "\\boxed{1.99420209922933, 1.64485362695146, B, -1.85949169454459, -2.3263479735221, A, 1.99420209922933, 1.95996398642447, -1.95996398642447, A}", "correct": false}
+{"id": 163, "is_mcq": false, "gold": ["1.4"], "response": "\\boxed{0.735}", "correct": false}
+{"id": 592, "is_mcq": true, "gold": "G", "response": "\\boxed{I}", "correct": false}
+{"id": 466, "is_mcq": false, "gold": ["VOTING YEARS AFTER 2012"], "response": "\\boxed{2012-2023}", "correct": false}
+{"id": 93, "is_mcq": false, "gold": ["20/[5+3*cos(t)]", "90/[4-sin(t)]"], "response": "\\boxed{5/(1-3/5*cos(t)), 24/(1-1/4*sin(t))}", "correct": false}
+{"id": 142, "is_mcq": true, "gold": "C", "response": "\\boxed{C}", "correct": true}
+{"id": 393, "is_mcq": true, "gold": "A", "response": "\\boxed{C}", "correct": false}
+{"id": 740, "is_mcq": false, "gold": ["C", "A", "A"], "response": "\\boxed{C, A, A}", "correct": true}
+{"id": 600, "is_mcq": true, "gold": "G", "response": "\\boxed{G}", "correct": true}
+{"id": 161, "is_mcq": false, "gold": ["DECREASING", "4339144.29375749"], "response": "\\boxed{DECREASING, 140}", "correct": false}
+{"id": 775, "is_mcq": false, "gold": ["143.43119010619", "9.34840", "B"], "response": "\\boxed{11.962, 13.2769, A}", "correct": false}
+{"id": 255, "is_mcq": false, "gold": ["20"], "response": "\\boxed{20}", "correct": true}
+{"id": 940, "is_mcq": false, "gold": ["7.31285", "7.38789", "8.2397", "8.64226", "3.19839", "3.39998", "Yes", "D"], "response": "\\boxed{1.971135, 1.889102, 2.192903, 2.280555, 2.192903, 2.280555, Yes, C}", "correct": false}
+{"id": 88, "is_mcq": true, "gold": "D", "response": "\\boxed{C}", "correct": false}
+{"id": 541, "is_mcq": true, "gold": "F", "response": "\\boxed{I}", "correct": false}
+{"id": 704, "is_mcq": true, "gold": "B", "response": "\\boxed{B}", "correct": true}
+{"id": 735, "is_mcq": true, "gold": "J", "response": "\\boxed{E}", "correct": false}
+{"id": 198, "is_mcq": false, "gold": ["m = k*r", "0.00454545", "183.333", "0.0416667", "37.5"], "response": "\\boxed{m = k*r, 0.00454545454545455, 220, 0.0416666666666667, 290.625}", "correct": false}
+{"id": 778, "is_mcq": false, "gold": ["5", "1.09545", "31.1667", "16.3146", "0.525969"], "response": "\\boxed{5, 1.15470053837925, 22.5, 10.1243556529821, -0.979704587093555}", "correct": false}
+{"id": 189, "is_mcq": false, "gold": ["(-0.0829959567953288, -1.91700404320467)"], "response": "\\boxed{(1.05780849861857+1i)*(1.05780849861857-1i), (1.05780849861857+1i)*(1.05780849861857-1i)}", "correct": false}
+{"id": 1119, "is_mcq": false, "gold": ["1260", "130"], "response": "\\boxed{1260, 130}", "correct": true}
+{"id": 689, "is_mcq": false, "gold": ["37.7261404719399"], "response": "\\boxed{11.2433}", "correct": false}
+{"id": 440, "is_mcq": false, "gold": ["(0.314159, 0.942478, 1.5708, 2.19911, 2.82743, 3.45575, 4.08407, 4.71239, 5.34071, 5.96903)"], "response": "\\boxed{0.321751, 0.643502, 0.965253, 1.28700, 1.60875, 1.9305, 2.25225, 2.57399, 2.89574, 3.21749, 3.53923, 3.86098, 4.18273, 4.50447, 4.82622, 5.14797, 5.46972, 5.79147}", "correct": false}
+{"id": 318, "is_mcq": true, "gold": "H", "response": "\\boxed{G}", "correct": false}
+{"id": 1104, "is_mcq": false, "gold": ["A", "C"], "response": "\\boxed{A, C}", "correct": true}
+{"id": 696, "is_mcq": false, "gold": ["1", "8"], "response": "\\boxed{1, 8}", "correct": true}
+{"id": 865, "is_mcq": true, "gold": "C", "response": "\\boxed{G}", "correct": false}
+{"id": 326, "is_mcq": false, "gold": ["millimeters", "meters", "kilometers", "meters", "kilometers", "centimeters"], "response": "\\boxed{meters, meters, kilometers, feet, kilometers, centimeters}", "correct": false}
+{"id": 13, "is_mcq": true, "gold": "J", "response": "\\boxed{I}", "correct": false}
+{"id": 569, "is_mcq": true, "gold": "H", "response": "\\boxed{D}", "correct": false}
+{"id": 919, "is_mcq": true, "gold": "I", "response": "\\boxed{I}", "correct": true}
+{"id": 451, "is_mcq": false, "gold": ["55.3333333333333", "52.6666666666667", "50", "47.3333333333333", "44.6666666666667"], "response": "\\boxed{56.5, 55, 53.5, 52, 50.5}", "correct": false}
+{"id": 859, "is_mcq": true, "gold": "C", "response": "\\boxed{C}", "correct": true}
+{"id": 407, "is_mcq": false, "gold": ["80"], "response": "\\boxed{30}", "correct": false}
+{"id": 54, "is_mcq": true, "gold": "F", "response": "\\boxed{I}", "correct": false}
+{"id": 1034, "is_mcq": true, "gold": "G", "response": "\\boxed{G}", "correct": true}
+{"id": 476, "is_mcq": false, "gold": ["31.1633+2.7126*x"], "response": "\\boxed{102.209+1.5263*x}", "correct": false}
+{"id": 447, "is_mcq": false, "gold": ["g(x+1)", "g(x)+4"], "response": "\\boxed{g(x+1), g(x)+4}", "correct": true}
+{"id": 191, "is_mcq": false, "gold": ["37.9525"], "response": "\\boxed{33.716667714336}", "correct": false}
+{"id": 61, "is_mcq": false, "gold": ["BCEG"], "response": "\\boxed{B, C, E, D}", "correct": false}
+{"id": 65, "is_mcq": false, "gold": ["-15/13", "13/15", "-15/13", "-13/15", "13/15", "-13/15"], "response": "\\boxed{-15/13, 13/15, -13/15, 15/13, 13/15}", "correct": false}
+{"id": 864, "is_mcq": false, "gold": ["9"], "response": "\\boxed{9}", "correct": true}
+{"id": 178, "is_mcq": false, "gold": ["165000", "17000", "74000", "91000"], "response": "\\boxed{165000, 17000, 74000, 91000}", "correct": true}
+{"id": 1116, "is_mcq": true, "gold": "A", "response": "\\boxed{I}", "correct": false}
+{"id": 209, "is_mcq": false, "gold": ["(24.5175463074866,27.4824536925134)"], "response": "\\boxed{(24.6554022035365, 27.3445977964635)}", "correct": false}
+{"id": 285, "is_mcq": false, "gold": ["9", "16", "27", "26"], "response": "\\boxed{9, 16, 27, 36}", "correct": false}
+{"id": 457, "is_mcq": false, "gold": ["85.9436692696235"], "response": "\\boxed{85.9436692696522}", "correct": true}
+{"id": 501, "is_mcq": false, "gold": ["-6", "6.5", "A"], "response": "\\boxed{-6, 6.5, A}", "correct": true}
+{"id": 563, "is_mcq": true, "gold": "C", "response": "\\boxed{C}", "correct": true}
+{"id": 51, "is_mcq": true, "gold": "A", "response": "\\boxed{H}", "correct": false}
+{"id": 228, "is_mcq": true, "gold": "I", "response": "\\boxed{B}", "correct": false}

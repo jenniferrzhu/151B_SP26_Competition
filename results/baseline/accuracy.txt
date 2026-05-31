@@ -1,0 +1,8 @@
+Baseline evaluation - Qwen/Qwen3-4B-Thinking-2507 (no training)
+GPU: 6
+Test set: data/test.jsonl (226 items)
+Generation time: 53.4 min
+
+  MCQ        :   57 /   81  (70.37%)
+  Free-form  :   86 /  145  (59.31%)
+  Overall    :  143 /  226  (63.27%)

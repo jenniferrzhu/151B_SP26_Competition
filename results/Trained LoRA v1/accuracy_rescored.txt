@@ -1,0 +1,10 @@
+Rescored with updated judger.py
+Folder: Trained LoRA v1
+Total items: 226
+
+  MCQ        :   24 /   81  (29.63%)
+  Free-form  :   49 /  145  (33.79%)
+  Overall    :   73 /  226  (32.30%)
+
+  Old (saved) overall : 71 / 226 (31.42%)
+  Delta vs old        : +2 items (+0.88 pts)

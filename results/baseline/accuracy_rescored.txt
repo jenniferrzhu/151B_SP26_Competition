@@ -1,0 +1,10 @@
+Rescored with updated judger.py
+Folder: baseline
+Total items: 226
+
+  MCQ        :   57 /   81  (70.37%)
+  Free-form  :   87 /  145  (60.00%)
+  Overall    :  144 /  226  (63.72%)
+
+  Old (saved) overall : 143 / 226 (63.27%)
+  Delta vs old        : +1 items (+0.44 pts)

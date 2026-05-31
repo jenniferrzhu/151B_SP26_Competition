@@ -1,0 +1,7 @@
+Aggregator: variant_weighted
+Source: results/Multishot v2 (diverse candidates)/predictions.jsonl
+Total: 226
+
+  MCQ        :   56 /   81  (69.14%)
+  Free-form  :   90 /  145  (62.07%)
+  Overall    :  146 /  226  (64.60%)
