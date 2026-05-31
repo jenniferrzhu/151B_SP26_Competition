@@ -78,6 +78,8 @@ def main():
 
     log("Loading model...", progress_fp)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+    tokenizer.pad_token = tokenizer.eos_token
+
     llm = LLM(
         model=MODEL_ID,
         quantization="bitsandbytes",
@@ -93,7 +95,7 @@ def main():
         max_lora_rank=LORA_RANK,
         max_loras=1,
     )
-    lora_request = LoRARequest("mcq_v6", 1, MCQ_ADAPTER_PATH)
+    lora_request = LoRARequest(lora_name="trained_v1", lora_int_id=1, lora_path=MCQ_ADAPTER_PATH)
 
     sampling_params = SamplingParams(
         max_tokens=MAX_TOKENS,
@@ -111,14 +113,19 @@ def main():
             tokenize=False, add_generation_prompt=True,
         ))
 
-    log(f"Generating responses for {len(prompts)} MCQ prompts...", progress_fp)
+    log(f"Generating responses for {len(prompts)} MCQ prompts in chunks of {CHUNK_SIZE}...")
     t0 = time.time()
     responses = []
     for i in range(0, len(prompts), CHUNK_SIZE):
         chunk = prompts[i : i + CHUNK_SIZE]
-        outputs = llm.generate(chunk, sampling_params=sampling_params, lora_request=lora_request, use_tqdm=False)
+        outputs = llm.generate(
+            chunk, 
+            sampling_params=sampling_params, 
+            lora_request=lora_request, 
+            use_tqdm=False
+        )
         responses.extend([out.outputs[0].text.strip() for out in outputs])
-        log(f"  {i + len(chunk)}/{len(prompts)} done", progress_fp)
+        log(f"  {min(i + CHUNK_SIZE, len(prompts))}/{len(prompts)} done")
     
     gen_time = time.time() - t0
     log(f"Inference complete in {gen_time/60:.2f} min.", progress_fp)

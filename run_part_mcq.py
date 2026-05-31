@@ -49,13 +49,30 @@ def main():
 
     # 2. Init Model with LoRA
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+    tokenizer.pad_token = tokenizer.eos_token
     llm = LLM(
-        model=MODEL_ID, quantization="bitsandbytes", load_format="bitsandbytes",
-        enable_lora=True, max_lora_rank=LORA_RANK, max_loras=1,
-        max_model_len=16384, gpu_memory_utilization=0.85, trust_remote_code=True,
+        model=MODEL_ID,
+        quantization="bitsandbytes",
+        load_format="bitsandbytes",
+        enable_prefix_caching=False,
+        gpu_memory_utilization=0.85,
+        max_model_len=16384,
+        trust_remote_code=True,
+        max_num_seqs=64,
+        max_num_batched_tokens=16384,
+        kv_cache_memory_bytes=14 * 1024**3,
+        enable_lora=True,
+        max_lora_rank=LORA_RANK,
+        max_loras=1,
     )
-    lora_request = LoRARequest("mcq_v6", 1, ADAPTER_PATH)
-    sampling_params = SamplingParams(max_tokens=MAX_TOKENS, temperature=0.6, top_p=0.95, top_k=20)
+    lora_request = LoRARequest(lora_name="trained_v1", lora_int_id=1, lora_path=ADAPTER_PATH)
+    sampling_params = SamplingParams(
+        max_tokens=MAX_TOKENS,
+        temperature=0.6,
+        top_p=0.95,
+        top_k=20,
+        min_p=0.0,
+    )
 
     # 3. Generate
     prompts = []
@@ -69,16 +86,26 @@ def main():
             tokenize=False, add_generation_prompt=True
         ))
 
-    log(f"Generating completions for {len(prompts)} items...")
-    outputs = llm.generate(prompts, sampling_params=sampling_params, lora_request=lora_request, use_tqdm=True)
+    log(f"Generating completions for {len(prompts)} items in chunks of {CHUNK_SIZE}...")
+    responses = []
+    for i in range(0, len(prompts), CHUNK_SIZE):
+        chunk = prompts[i : i + CHUNK_SIZE]
+        outputs = llm.generate(
+            chunk, 
+            sampling_params=sampling_params, 
+            lora_request=lora_request, 
+            use_tqdm=False
+        )
+        responses.extend([out.outputs[0].text.strip() for out in outputs])
+        log(f"  {min(i + CHUNK_SIZE, len(prompts))}/{len(prompts)} done")
     
     results = []
-    for item, out in zip(mcq_items, outputs):
+    for item, resp in zip(mcq_items, responses):
         results.append({
             "id": item["id"],
             "is_mcq": True,
             "gold": item.get("answer"),
-            "response": out.outputs[0].text.strip(),
+            "response": resp,
         })
 
     # 4. Save
