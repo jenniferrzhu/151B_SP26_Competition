@@ -16,9 +16,9 @@ from typing import Optional
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
-GPU_ID        = "6"
+GPU_ID        = "7"
 TEST_PATH     = "data/test.jsonl"
-test_name     = "Altered FRQ Prompt"
+test_name     = "GEPA Optimized"
 PRED_PATH     = f"results/{test_name}/predictions.jsonl"
 ACC_PATH      = f"results/{test_name}/accuracy.txt"
 PROGRESS_PATH = f"results/{test_name}/progress.log"
@@ -214,6 +214,43 @@ def extract_boxed_values(text: str) -> list[str]:
     return values
 
 
+def extract_boxed_group(text: str) -> list[str]:
+    values = []
+    entries = []
+    start = 0
+    while True:
+        idx = text.find("\\boxed{", start)
+        if idx < 0:
+            break
+        brace_start = idx + len("\\boxed{")
+        depth = 1
+        i = brace_start
+        while i < len(text) and depth > 0:
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+            i += 1
+        if depth == 0:
+            content = text[brace_start:i - 1].strip()
+            if content:
+                entries.append((idx, i, content))
+        start = i
+
+    if not entries:
+        return values
+
+    last_group = [entries[-1]]
+    for j in range(len(entries) - 2, -1, -1):
+        gap = text[entries[j][1]:entries[j + 1][0]]
+        if re.match(r"^[\s,\$\.\;\:\-\&\\]*$", gap):
+            last_group.insert(0, entries[j])
+        else:
+            break
+
+    return [item[2] for item in last_group]
+
+
 def answer_visible_text(text: str) -> str:
     think_end = text.rfind("</think>")
     return text[think_end + len("</think>"):] if think_end >= 0 else text
@@ -272,17 +309,54 @@ def build_selection_prompt(
     return SYSTEM_PROMPT_SELECT, user
 
 
-def selected_or_fallback(selector_response: str, candidates: list[str]) -> str:
+def selected_or_fallback(selector_response: str, candidates: list[str]) -> tuple[str, Optional[int]]:
     if "\\boxed{" in selector_response:
-        return selector_response.strip()
+        return selector_response.strip(), None
 
     m = re.search(r"\b(?:candidate|option|choice)\s*#?\s*([1-5])\b", selector_response, re.IGNORECASE)
     if m:
         idx = int(m.group(1)) - 1
         if 0 <= idx < len(candidates):
-            return candidates[idx]
+            return candidates[idx], idx
 
-    return selector_response.strip()
+    return selector_response.strip(), None
+
+
+def format_candidate_answer(item: dict, candidate: str) -> str:
+    if item.get("options"):
+        letter = extract_letter(candidate)
+        if letter:
+            return f"\\boxed{{{letter}}}"
+        return candidate
+
+    boxed_group = extract_boxed_group(answer_visible_text(candidate))
+    if boxed_group:
+        return f"\\boxed{{{', '.join(boxed_group)}}}"
+    return candidate
+
+
+def candidate_format_score(item: dict, candidate: str) -> int:
+    score = 0
+    if item.get("options"):
+        letter = extract_letter(candidate)
+        return 3 if letter else 0
+
+    boxed_group = extract_boxed_group(answer_visible_text(candidate))
+    if boxed_group:
+        score += 3
+        blank_count = item["question"].count("[ANS]")
+        if blank_count > 0 and len(boxed_group) == blank_count:
+            score += 2
+    return score
+
+
+def choose_best_formatted_candidate(item: dict, candidates: list[str]) -> str:
+    scored = []
+    for idx, cand in enumerate(candidates):
+        score = candidate_format_score(item, cand)
+        scored.append((score, idx, cand))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    return scored[0][2] if scored else ""
 
 
 def extract_letter(text: str) -> str:
@@ -491,9 +565,24 @@ def main() -> None:
 
     selection_secs = time.time() - select_t0
     gen_secs = time.time() - t0
-    responses = [
+    selected_pairs = [
         selected_or_fallback(selector_response, candidates)
         for selector_response, candidates in zip(selector_responses, candidate_sets)
+    ]
+    responses = [pair[0] for pair in selected_pairs]
+    # If the selector did not return a boxed answer, prefer a well-formatted candidate.
+    responses = [
+        resp
+        if "\\boxed{" in resp
+        else format_candidate_answer(
+            item,
+            candidates[selected_idx]
+            if selected_idx is not None
+            else choose_best_formatted_candidate(item, candidates),
+        )
+        for item, resp, candidates, (_, selected_idx) in zip(
+            data, responses, candidate_sets, selected_pairs
+        )
     ]
     log(
         f"Selection finished. Total generation time {gen_secs / 60:.1f} min "
@@ -555,12 +644,12 @@ def main() -> None:
         variant_total = Counter()
         variant_correct = Counter()
         for r in scored_results:
-            for variant_name, is_correct in zip(
+            for v_name, is_correct in zip(
                 r["candidate_variants"], r["candidate_correct"]
             ):
-                variant_total[variant_name] += 1
+                variant_total[v_name] += 1
                 if is_correct:
-                    variant_correct[variant_name] += 1
+                    variant_correct[v_name] += 1
         variant_lines = "\n".join(
             f"    {name:24s}: {variant_correct[name]:4d} / {variant_total[name]:4d}  "
             f"({variant_correct[name] / variant_total[name] * 100:.2f}%)"
