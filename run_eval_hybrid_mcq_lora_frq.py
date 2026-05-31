@@ -89,19 +89,18 @@ SYSTEM_PROMPT_MATH = (
 SYSTEM_PROMPT_MCQ = (
     "You are an expert mathematician. "
     "Read the problem and the answer choices below, then select the single best answer. "
-    "Output ONLY the letter of your chosen option inside \\boxed{}, e.g. \\boxed{C}."
+    "Output ONLY the letter of your chosen option inside \\boxed{}, e.g. \\boxed{C}. "
+    "If you must reason, keep it brief and ensure the final letter is at the very end in its own box."
 )
 SYSTEM_PROMPT_SELECT = (
-    "You are an expert math judge. You will see one math problem and several candidate "
-    "solutions from the same model. Re-solve the problem independently, then compare "
-    "your result against the candidates. Check the math yourself; do not trust an answer "
-    "only because it is stated confidently. Consensus between candidates is useful "
-    "evidence, but the reasoning, answer count, order, units, rounding, and problem "
-    "requirements matter more. If every candidate is flawed but you can solve the "
+    "You are an expert math judge. You will see one math problem and 5 candidate "
+    "solutions from the same model. Analyze each candidate for correctness and formatting. "
+    "If one or more candidates are correct, state which one is best (e.g., 'The best choice is Candidate #1.') "
+    "and provide the final answer clearly in a single \\boxed{} block. "
+    "If multiple sub-answers are requested, separate them by commas inside a single \\boxed{}, "
+    "e.g. \\boxed{ans1, ans2}. If all candidates are flawed but you can solve the "
     "problem, return your corrected final answer. Return only the selected or corrected "
-    "final answer inside \\boxed{}. For multiple sub-answers, put comma-separated values "
-    "inside one \\boxed{}. For multiple-choice questions, return only the option letter "
-    "inside \\boxed{}."
+    "final answer inside \\boxed{} at the end of your response."
 )
 
 
@@ -188,6 +187,54 @@ def build_candidate_prompt(tokenizer, item: dict, variant: dict) -> str:
             "Follow the original problem exactly. Put the final answer inside \\boxed{}."
         )
     return build_chat_prompt(tokenizer, system, user)
+
+
+def normalize_tokens(text: str) -> str:
+    # Basic cleanup: remove common LaTeX noise and map synonyms
+    cleaned = text.replace("\\,", "").replace("\\left", "").replace("\\right", "")
+    cleaned = cleaned.replace("$", "").replace("\\", "").strip()
+    t = cleaned.lower()
+    if t in {"yes", "y", "true"}: return "true"
+    if t in {"no", "n", "false"}: return "false"
+    # Keep common math tokens, letters, digits, punctuation.
+    allowed = []
+    for ch in cleaned:
+        if ch.isalnum() or ch in ".,/()[]{}+-*^=":
+            allowed.append(ch)
+        elif ch.isspace():
+            allowed.append(" ")
+    normalized = "".join(allowed)
+    return " ".join(normalized.split())
+
+
+def canonicalize_answer(answer: str, is_mcq: bool) -> str:
+    if is_mcq:
+        letter = extract_letter(answer)
+        return letter or ""
+    boxed_group = extract_boxed_group(answer_visible_text(answer))
+    if boxed_group:
+        return ", ".join(normalize_tokens(part) for part in boxed_group)
+    # Fallback to last line if no boxes
+    lines = [l.strip() for l in answer_visible_text(answer).splitlines() if l.strip()]
+    return normalize_tokens(lines[-1]) if lines else ""
+
+
+def majority_vote_answer(candidates: list[str], is_mcq: bool) -> str:
+    counts = Counter()
+    canonical_to_raw = {}
+    for cand in candidates:
+        key = canonicalize_answer(cand, is_mcq)
+        if not key: continue
+        counts[key] += 1
+        if key not in canonical_to_raw:
+            canonical_to_raw[key] = cand
+    if not counts:
+        return candidates[0] if candidates else ""
+    best_key = counts.most_common(1)[0][0]
+    raw_winner = canonical_to_raw[best_key]
+    # Return formatted version
+    if is_mcq: return f"\\boxed{{{best_key.upper()}}}"
+    return format_candidate_answer({"options": None, "question": ""}, raw_winner)
 
 
 def build_chat_prompt(tokenizer, system: str, user: str) -> str:
@@ -315,21 +362,26 @@ def build_selection_prompt(
     return SYSTEM_PROMPT_SELECT, user
 
 
-def selected_or_fallback(selector_response: str, candidates: list[str]) -> tuple[str, Optional[int]]:
-    if "\\boxed{" in selector_response:
-        return selector_response.strip(), None
-
+def selected_or_fallback(selector_response: str, candidates: list[str], is_mcq: bool) -> tuple[str, Optional[int]]:
+    # 1. Try to find explicit candidate selection: "Candidate #3"
     m = re.search(r"\b(?:candidate|option|choice)\s*#?\s*([1-5])\b", selector_response, re.IGNORECASE)
     if m:
         idx = int(m.group(1)) - 1
         if 0 <= idx < len(candidates):
             return candidates[idx], idx
 
-    return selector_response.strip(), None
+    # 2. Try to find a boxed answer in the selector's own response
+    boxed_vals = extract_boxed_group(answer_visible_text(selector_response))
+    if boxed_vals:
+        return f"\\boxed{{ {', '.join(boxed_vals)} }}", None
+
+    # 3. Fallback to Majority Voting
+    return majority_vote_answer(candidates, is_mcq), None
 
 
 def format_candidate_answer(item: dict, candidate: str) -> str:
-    if item.get("options"):
+    is_mcq = bool(item.get("options"))
+    if is_mcq:
         letter = extract_letter(candidate)
         if letter:
             return f"\\boxed{{{letter}}}"
@@ -338,6 +390,11 @@ def format_candidate_answer(item: dict, candidate: str) -> str:
     boxed_group = extract_boxed_group(answer_visible_text(candidate))
     if boxed_group:
         return f"\\boxed{{{', '.join(boxed_group)}}}"
+    
+    # Fallback to last non-empty line if no boxed found
+    lines = [l.strip() for l in answer_visible_text(candidate).splitlines() if l.strip()]
+    if lines:
+        return f"\\boxed{{{lines[-1]}}}"
     return candidate
 
 
@@ -367,11 +424,14 @@ def choose_best_formatted_candidate(item: dict, candidates: list[str]) -> str:
 
 def extract_letter(text: str) -> str:
     search_text = answer_visible_text(text)
-    m = re.search(r"\\boxed\{\s*([A-Za-z])\s*\}", search_text)
-    if not m:
-        m = re.search(r"\\boxed\{\s*([A-Za-z])\s*\}", text)
-    if m:
-        return m.group(1).upper()
+    # Prioritize boxed letters at the END of the response
+    matches = re.findall(r"\\boxed\{\s*([A-Za-z])\s*\}", search_text)
+    if not matches:
+        matches = re.findall(r"\\boxed\{\s*([A-Za-z])\s*\}", text)
+    if matches:
+        return matches[-1].upper()
+    
+    # Fallback to raw letter if no box
     matches = re.findall(r"\b([A-Z])\b", search_text.upper())
     if not matches:
         matches = re.findall(r"\b([A-Z])\b", text.upper())
@@ -434,14 +494,20 @@ def score_model_response(item: dict, response: str, judger) -> Optional[bool]:
     if "answer" not in item:
         return None
 
+    is_mcq = bool(item.get("options"))
     gold = item["answer"]
-    if item.get("options"):
+    
+    if is_mcq:
         return extract_letter(response) == str(gold).strip().upper()
 
+    # For FRQ, extract and normalize the boxed group before judging
+    boxed_vals = extract_boxed_group(answer_visible_text(response))
+    clean_pred = ", ".join(boxed_vals) if boxed_vals else response
+    
     gold_list = gold if isinstance(gold, list) else [gold]
     try:
         return judger.auto_judge(
-            pred=response, gold=gold_list, options=[[]] * len(gold_list),
+            pred=clean_pred, gold=gold_list, options=[[]] * len(gold_list),
         )
     except Exception:
         return False
@@ -523,9 +589,9 @@ def main() -> None:
     mcq_outputs, mcq_secs = generate_single_outputs(
         llm=llm,
         prompts=mcq_prompts,
-        sampling_params=deterministic_sampling_params,
+        sampling_params=sampled_sampling_params,
         chunk_size=candidate_chunk_size,
-        label="MCQ LoRA deterministic pass",
+        label="MCQ LoRA pass (sampled)",
         progress_fp=progress_fp,
         lora_request=lora_request,
     )
@@ -603,23 +669,10 @@ def main() -> None:
             selector_responses.extend([out.outputs[0].text.strip() for out in outputs])
 
     frq_selected_pairs = [
-        selected_or_fallback(selector_response, candidates)
+        selected_or_fallback(selector_response, candidates, is_mcq=False)
         for selector_response, candidates in zip(selector_responses, candidate_sets)
     ]
     frq_responses = [pair[0] for pair in frq_selected_pairs]
-    frq_responses = [
-        resp
-        if "\\boxed{" in resp
-        else format_candidate_answer(
-            item,
-            candidates[selected_idx]
-            if selected_idx is not None
-            else choose_best_formatted_candidate(item, candidates),
-        )
-        for item, resp, candidates, (_, selected_idx) in zip(
-            frq_items, frq_responses, candidate_sets, frq_selected_pairs
-        )
-    ]
 
     gen_secs = time.time() - t0
     log(
