@@ -231,10 +231,7 @@ def majority_vote_answer(candidates: list[str], is_mcq: bool) -> str:
     if not counts:
         return candidates[0] if candidates else ""
     best_key = counts.most_common(1)[0][0]
-    raw_winner = canonical_to_raw[best_key]
-    # Return formatted version
-    if is_mcq: return f"\\boxed{{{best_key.upper()}}}"
-    return format_candidate_answer({"options": None, "question": ""}, raw_winner)
+    return canonical_to_raw[best_key]
 
 
 def build_chat_prompt(tokenizer, system: str, user: str) -> str:
@@ -371,12 +368,27 @@ def selected_or_fallback(selector_response: str, candidates: list[str], is_mcq: 
             return candidates[idx], idx
 
     # 2. Try to find a boxed answer in the selector's own response
-    boxed_vals = extract_boxed_group(answer_visible_text(selector_response))
-    if boxed_vals:
-        return f"\\boxed{{ {', '.join(boxed_vals)} }}", None
+    # If the selector provides its own solution, we return its FULL response
+    if "\\boxed{" in answer_visible_text(selector_response):
+        return selector_response.strip(), None
 
     # 3. Fallback to Majority Voting
-    return majority_vote_answer(candidates, is_mcq), None
+    # majority_vote_answer now returns the raw raw_winner instead of a formatted version
+    counts = Counter()
+    canonical_to_raw = {}
+    for cand in candidates:
+        key = canonicalize_answer(cand, is_mcq)
+        if not key: continue
+        counts[key] += 1
+        if key not in canonical_to_raw:
+            canonical_to_raw[key] = cand
+    if not counts:
+        winner = candidates[0] if candidates else ""
+    else:
+        best_key = counts.most_common(1)[0][0]
+        winner = canonical_to_raw[best_key]
+    
+    return winner, None
 
 
 def format_candidate_answer(item: dict, candidate: str) -> str:
@@ -500,14 +512,11 @@ def score_model_response(item: dict, response: str, judger) -> Optional[bool]:
     if is_mcq:
         return extract_letter(response) == str(gold).strip().upper()
 
-    # For FRQ, extract and normalize the boxed group before judging
-    boxed_vals = extract_boxed_group(answer_visible_text(response))
-    clean_pred = ", ".join(boxed_vals) if boxed_vals else response
-    
+    # For FRQ, pass the FULL response directly. Judger handles extraction.
     gold_list = gold if isinstance(gold, list) else [gold]
     try:
         return judger.auto_judge(
-            pred=clean_pred, gold=gold_list, options=[[]] * len(gold_list),
+            pred=response, gold=gold_list, options=[[]] * len(gold_list),
         )
     except Exception:
         return False

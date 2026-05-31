@@ -19,14 +19,18 @@ from collections import Counter
 from pathlib import Path
 from typing import Optional, List, Tuple
 
+# ── Configuration ─────────────────────────────────────────────────────────────
+MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
+GPU_ID        = "0"
+MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
+LORA_RANK     = 16
+
+os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
+
+# We set this before importing vLLM/transformers
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
-
-# ── Configuration ─────────────────────────────────────────────────────────────
-MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
-MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
-LORA_RANK     = 16
 
 MAX_TOKENS    = 32768
 CHUNK_SIZE    = 32
@@ -180,17 +184,6 @@ def canonicalize_answer(answer: str, is_mcq: bool) -> str:
     lines = [l.strip() for l in answer_visible_text(answer).splitlines() if l.strip()]
     return normalize_tokens(lines[-1]) if lines else ""
 
-def format_candidate_answer(item: dict, candidate: str) -> str:
-    is_mcq = bool(item.get("options"))
-    if is_mcq:
-        letter = extract_letter(candidate)
-        return f"\\boxed{{{letter}}}" if letter else candidate
-    boxed_group = extract_boxed_group(answer_visible_text(candidate))
-    if boxed_group:
-        return f"\\boxed{{{', '.join(boxed_group)}}}"
-    lines = [l.strip() for l in answer_visible_text(candidate).splitlines() if l.strip()]
-    return f"\\boxed{{{lines[-1]}}}" if lines else candidate
-
 def majority_vote_answer(candidates: list[str], is_mcq: bool) -> str:
     counts = Counter()
     canonical_to_raw = {}
@@ -201,9 +194,7 @@ def majority_vote_answer(candidates: list[str], is_mcq: bool) -> str:
         if key not in canonical_to_raw: canonical_to_raw[key] = cand
     if not counts: return candidates[0] if candidates else ""
     best_key = counts.most_common(1)[0][0]
-    raw_winner = canonical_to_raw[best_key]
-    if is_mcq: return f"\\boxed{{{best_key.upper()}}}"
-    return format_candidate_answer({"options": None, "question": ""}, raw_winner)
+    return canonical_to_raw[best_key] # Returns FULL raw response
 
 # ── Prompt Building ──────────────────────────────────────────────────────────
 
@@ -220,12 +211,9 @@ def format_problem(question: str, options: Optional[list]) -> str:
         return f"{question}\n\nOptions:\n{opts_text}"
     return question
 
-def build_prompt(question: str, options: Optional[list], variant: Optional[dict] = None) -> tuple[str, str]:
-    if options:
-        system = variant.get("mcq_system_prompt") if variant and variant.get("mcq_system_prompt") else SYSTEM_PROMPT_MCQ
-        return system, format_problem(question, options)
-    system = variant.get("math_system_prompt") if variant and variant.get("math_system_prompt") else SYSTEM_PROMPT_MATH
-    return system, question
+def build_prompt(question: str, options: Optional[list]) -> tuple[str, str]:
+    if options: return SYSTEM_PROMPT_MCQ, format_problem(question, options)
+    return SYSTEM_PROMPT_MATH, question
 
 def build_candidate_prompt(tokenizer, item: dict, variant: tuple) -> str:
     name, instruction = variant
@@ -245,32 +233,13 @@ def answer_format_hint(item: dict) -> str:
         return f"The prompt contains {blank_count} [ANS] placeholders. Answer the actual requested blanks in order."
     return "This is a free-form problem. Follow the requested final-answer format."
 
-def build_selection_prompt(item: dict, candidates: list[str], variant_names: list[str]) -> str:
-    problem = format_problem(item["question"], item.get("options"))
-    candidate_blocks = []
-    for idx, (candidate, v_name) in enumerate(zip(candidates, variant_names), start=1):
-        boxed_values = extract_boxed_values(candidate)
-        boxed_text = ", ".join(boxed_values[-3:]) if boxed_values else "(no boxed answer found)"
-        candidate_blocks.append(
-            f"Candidate {idx} ({v_name})\n"
-            f"Extracted boxed answer(s): {boxed_text}\n"
-            f"Visible response excerpt:\n{visible_answer_text(candidate)}"
-        )
-    user = (
-        f"Problem:\n{problem}\n\nAnswer format hint: {answer_format_hint(item)}\n\n"
-        "Candidate solutions:\n\n" + "\n\n".join(candidate_blocks) +
-        "\n\nChoose the best final answer from these candidates, or correct them if needed. "
-        "Output only that answer in the required \\boxed{} format."
-    )
-    return build_chat_prompt(None, SYSTEM_PROMPT_SELECT, user) # build_chat_prompt(tokenizer, ...) will be used in main
-
 def selected_or_fallback(selector_response: str, candidates: list[str], is_mcq: bool) -> str:
     m = re.search(r"\b(?:candidate|option|choice)\s*#?\s*([1-5])\b", selector_response, re.IGNORECASE)
     if m:
         idx = int(m.group(1)) - 1
-        if 0 <= idx < len(candidates): return candidates[idx]
-    boxed_vals = extract_boxed_group(answer_visible_text(selector_response))
-    if boxed_vals: return f"\\boxed{{ {', '.join(boxed_vals)} }}"
+        if 0 <= idx < len(candidates): return candidates[idx] # Full candidate text
+    if "\\boxed{" in answer_visible_text(selector_response):
+        return selector_response # Full selector text if it provided a corrected answer
     return majority_vote_answer(candidates, is_mcq)
 
 # ── Utils ────────────────────────────────────────────────────────────────────
@@ -295,13 +264,17 @@ def generate_single_outputs(llm, prompts, sampling_params, chunk_size, label, lo
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=str, default="data/private.jsonl")
-    parser.add_argument("--output_jsonl", type=str, default="results/submission.jsonl")
-    parser.add_argument("--output_csv", type=str, default="results/submission.csv")
+    parser.add_argument("--gpu_id", type=str, default=GPU_ID)
+    parser.add_argument("--input", type=str, default="data/test.jsonl")
+    parser.add_argument("--output_jsonl", type=str, default="submission.jsonl")
+    parser.add_argument("--output_csv", type=str, default="submission.csv")
     parser.add_argument("--gpu_memory", type=float, default=0.85)
     args = parser.parse_args()
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+    log(f"Using GPU: {args.gpu_id}")
     log(f"Loading data from {args.input}...")
+
     data = [json.loads(line) for line in open(args.input, encoding='utf-8')]
     mcq_indices = [i for i, d in enumerate(data) if d.get("options")]
     frq_indices = [i for i, d in enumerate(data) if not d.get("options")]
@@ -333,7 +306,7 @@ def main():
         
         outputs = generate_single_outputs(llm, mcq_prompts, sampled_params, CHUNK_SIZE, "MCQ LoRA pass", lora_request)
         for idx, out in zip(mcq_indices, outputs):
-            results[idx] = format_candidate_answer(data[idx], out)
+            results[idx] = out # Preserve FULL output
 
     # 2. FRQ Inference (Ensemble)
     if frq_indices:
@@ -358,7 +331,6 @@ def main():
         variant_names = [v[0] for v in CANDIDATE_VARIANTS]
         selection_prompts = []
         for item, cands in zip(frq_items, candidate_sets):
-            # Reuse build_selection_prompt logic but with tokenizer
             problem = format_problem(item["question"], item.get("options"))
             candidate_blocks = []
             for idx, (candidate, v_name) in enumerate(zip(cands, variant_names), start=1):
