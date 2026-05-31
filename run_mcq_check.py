@@ -1,6 +1,6 @@
 """
-Standalone MCQ Check: Verifying LoRA v6 performance on MCQ items only.
-Matches v8 MCQ logic exactly.
+Standalone MCQ Check with Majority Voting: Verifying LoRA v6 performance.
+Uses an ensemble of samples per question to stabilize and maximize accuracy.
 """
 
 import json
@@ -10,6 +10,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Optional
+from collections import Counter
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
@@ -18,13 +19,14 @@ TEST_PATH     = "data/test.jsonl"
 MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
 LORA_RANK     = 16
 
-test_name     = "MCQ Check LoRA v6"
+NUM_SAMPLES   = 8  # Majority voting size
+test_name     = f"MCQ Check LoRA v6 - Maj{NUM_SAMPLES}"
 PRED_PATH     = f"results/{test_name}/predictions.jsonl"
 ACC_PATH      = f"results/{test_name}/accuracy.txt"
 PROGRESS_PATH = f"results/{test_name}/progress.log"
 
 MAX_TOKENS    = 32768
-CHUNK_SIZE    = 32
+CHUNK_SIZE    = 8  # Reduced chunk size because we are generating n=8 per prompt
 
 os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
@@ -98,6 +100,7 @@ def main():
     lora_request = LoRARequest(lora_name="trained_v1", lora_int_id=1, lora_path=MCQ_ADAPTER_PATH)
 
     sampling_params = SamplingParams(
+        n=NUM_SAMPLES,
         max_tokens=MAX_TOKENS,
         temperature=0.6,
         top_p=0.95,
@@ -113,9 +116,9 @@ def main():
             tokenize=False, add_generation_prompt=True,
         ))
 
-    log(f"Generating responses for {len(prompts)} MCQ prompts in chunks of {CHUNK_SIZE}...")
+    log(f"Generating {NUM_SAMPLES} responses per prompt for {len(prompts)} MCQ items in chunks of {CHUNK_SIZE}...")
     t0 = time.time()
-    responses = []
+    all_responses = []
     for i in range(0, len(prompts), CHUNK_SIZE):
         chunk = prompts[i : i + CHUNK_SIZE]
         outputs = llm.generate(
@@ -124,24 +127,37 @@ def main():
             lora_request=lora_request, 
             use_tqdm=False
         )
-        responses.extend([out.outputs[0].text.strip() for out in outputs])
+        for out in outputs:
+            all_responses.append([o.text.strip() for o in out.outputs])
+        
         log(f"  {min(i + CHUNK_SIZE, len(prompts))}/{len(prompts)} done")
     
     gen_time = time.time() - t0
     log(f"Inference complete in {gen_time/60:.2f} min.", progress_fp)
 
-    log("Scoring...", progress_fp)
+    log("Scoring with Majority Voting...", progress_fp)
     results = []
-    for item, resp in zip(mcq_items, responses):
-        pred = extract_letter(resp)
+    for item, responses in zip(mcq_items, all_responses):
+        preds = [extract_letter(r) for r in responses]
+        
+        # Majority Vote
+        counts = Counter([p for p in preds if p])
+        if not counts:
+            final_pred = preds[0] if preds else ""
+        else:
+            final_pred = counts.most_common(1)[0][0]
+            
         gold = str(item["answer"]).strip().upper()
-        correct = (pred == gold)
+        correct = (final_pred == gold)
+        
         results.append({
             "id": item.get("id"),
             "gold": gold,
-            "pred": pred,
-            "response": resp,
-            "correct": correct
+            "pred": final_pred,
+            "all_preds": preds,
+            "vote_counts": dict(counts),
+            "correct": correct,
+            "responses": responses
         })
 
     with open(PRED_PATH, "w") as f:
@@ -149,7 +165,7 @@ def main():
 
     acc = sum(r["correct"] for r in results) / len(results) * 100
     summary = (
-        f"Standalone MCQ Evaluation - {MODEL_ID}\n"
+        f"Standalone MCQ Evaluation (Majority Voting n={NUM_SAMPLES}) - {MODEL_ID}\n"
         f"Adapter: {MCQ_ADAPTER_PATH}\n"
         f"Test set: {TEST_PATH} ({len(results)} MCQ items)\n"
         f"Accuracy: {acc:.2f}% ({sum(r['correct'] for r in results)}/{len(results)})\n"
