@@ -18,12 +18,12 @@ from typing import Optional
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
-GPU_ID        = "7"
+GPU_ID        = "2"
 TEST_PATH     = "data/test.jsonl"
 MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
 LORA_RANK     = 16
 
-test_name     = "Hybrid v6 MCQ + Majority FRQ"
+test_name     = "Hybridv2 v6 MCQ + Majority FRQ"
 PRED_PATH     = f"results/{test_name}/predictions.jsonl"
 ACC_PATH      = f"results/{test_name}/accuracy.txt"
 PROGRESS_PATH = f"results/{test_name}/progress.log"
