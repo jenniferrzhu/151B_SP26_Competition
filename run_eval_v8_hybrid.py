@@ -19,7 +19,7 @@ from typing import Optional, List, Tuple
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
-GPU_ID        = "0"
+GPU_ID        = "2"
 TEST_PATH     = "data/test.jsonl"
 MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
 LORA_RANK     = 16

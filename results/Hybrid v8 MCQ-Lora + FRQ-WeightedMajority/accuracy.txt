@@ -1,0 +1,6 @@
+Hybrid v8 Results:
+MCQ Accuracy : 66.67% (54/81)
+FRQ Accuracy : 62.07% (90/145)
+Overall      : 63.72%
+Oracle@Ensemble: 65.93%
+Weighted Voting missed correct candidate: 5
