@@ -1,0 +1,48 @@
+1. GitHub Repo & Gradescope Submission
+
+We have created a Gradescope assignment, dues on this Sunday (May 31st). Submit your GitHub repo link (make sure it is public, as May31st is the deadline of competition so it would not affect methods from others) there. Make sure to add all group members to your Gradescope submission.
+
+Your repo must include a README.md with:
+
+GPU type used (e.g., A100, RTX 4090, T4, etc.) and approximate total generation/inference time
+Instructions on how to download/set up model weights (e.g., which directory to place them in)
+How to call your run_inference() function to reproduce results
+2. Single Entry Point — run_inference()
+
+Your codebase must expose one function (e.g., run_inference()) that, when called, performs the full pipeline end-to-end:
+
+Loads your model: your fine-tuned checkpoint from HuggingFace Hub if you trained, or the designated base model if you didn't. You can use vLLM, HuggingFace Transformers, or whatever hosting you used.
+Runs inference on the private dataset.
+Applies all post-processing: answer normalization, format cleaning, adapter switching, feeding generations back to the model, etc.
+Outputs the final submission CSV.
+If you used adaptive inference (e.g., multiple adapters for different question types, iterative re-generation) or any post-processing techniques, all of that logic must be packed into this one function. Nothing manual or external — calling run_inference() should produce the final CSV.
+
+You can also put the function in a separate script (i.e. run_inference.py for accessibility and minor affect to your codebase).
+
+3. Uploading Model Weights (if you fine-tuned)
+
+Upload your model to HuggingFace Hub so we can load it during verification.
+
+In Python:
+
+from huggingface_hub import login
+login()
+model.push_to_hub("your-username/your-model-name")
+Visit Manage Class to disable runnable code snippets×
+Or via CLI:
+
+huggingface-cli login
+huggingface-cli upload your-username/your-model-name ./path/to/local/model
+Then reference the Hub path inside your run_inference() function to load the model.
+
+4. Hyperparameters & Reproducibility
+
+All hyperparameters in your code must be the final ones used for your submission for reproducibility (i.e. temperatures, prompts, etc.).
+We do not require string-identical outputs as we understand variability happens. But overall performance should be consistent (i.e. no very big fluctuations like 30% v.s. 60% accuracy) with your submission.
+5. How We Will Verify
+
+Top-10 teams: We will re-run your pipeline on the full private set.
+All other teams: We will re-run your pipeline on 200 randomly sampled private-set questions and compare outputs against your submission.
+Fluctuations are expected. Large discrepancies (i.e. 30% v.s. 60% overall accuracy) will be flagged.
+
+We value academic integrity.

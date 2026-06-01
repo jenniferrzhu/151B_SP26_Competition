@@ -17,7 +17,7 @@ from collections import Counter
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
 DEFAULT_INPUT_PATH  = "data/private.jsonl"
-ADAPTER_PATH  = "adapters/qwen3-lora-v6-mixed-fmtfix"
+ADAPTER_PATH  = "lucashlaing/qwen3-lora-v6"
 LORA_RANK     = 16
 NUM_SAMPLES   = 8
 MAX_TOKENS    = 32768
@@ -139,14 +139,24 @@ def main():
     for item, responses in zip(my_items, all_responses):
         preds = [extract_letter(r) for r in responses]
         counts = Counter([p for p in preds if p])
-        final_pred = counts.most_common(1)[0][0] if counts else (preds[0] if preds else "")
+        if not counts:
+            final_pred = ""
+            winner_idx = 0
+        else:
+            final_pred = counts.most_common(1)[0][0]
+            # Find the first candidate that produced the winning letter
+            winner_idx = 0
+            for idx, p in enumerate(preds):
+                if p == final_pred:
+                    winner_idx = idx
+                    break
         
         results.append({
             "id": item["id"],
             "is_mcq": True,
             "gold": item.get("answer"),
-            "response": f"\\boxed{{{final_pred}}}",
-            "candidates": [f"\\boxed{{{p}}}" for p in preds], # For assembler compatibility
+            "response": responses[winner_idx], 
+            "candidates": responses, 
             "all_preds": preds,
             "vote_counts": dict(counts)
         })

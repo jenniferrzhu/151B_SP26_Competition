@@ -95,7 +95,7 @@ def main():
         for item in my_items:
             user = item["question"]
             if instruction:
-                user = f"{user}\n\nAttempt style: {name}\n{instruction}\nFollow the original problem exactly. Put final answer in \\boxed{}."
+                user = f"{user}\n\nAttempt style: {name}\n{instruction}\nFollow the original problem exactly. Put final answer in \\boxed{{}}."
             
             prompts.append(tokenizer.apply_chat_template(
                 [{"role": "system", "content": SYSTEM_PROMPT_MATH}, {"role": "user", "content": user}],

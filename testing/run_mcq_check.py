@@ -16,7 +16,7 @@ from collections import Counter
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
 GPU_ID        = "0"
 TEST_PATH     = "data/test.jsonl"
-MCQ_ADAPTER_PATH = "adapters/qwen3-lora-v6-mixed-fmtfix"
+MCQ_ADAPTER_PATH = "lucashlaing/qwen3-lora-v6"
 LORA_RANK     = 16
 
 NUM_SAMPLES   = 8  # Majority voting size

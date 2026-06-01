@@ -1,21 +1,26 @@
 """
-Parallel MCQ Script (v8 Logic).
+Parallel MCQ Script (LoRA v6 + Majority Voting n=8).
+Optimized for stable 77%+ MCQ accuracy.
 Run once on any GPU: python run_part_mcq.py --gpu_id 0 --input data/private.jsonl
 """
 
 import json
 import os
+import re
+import sys
 import time
 import argparse
 from pathlib import Path
+from collections import Counter
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
 DEFAULT_INPUT_PATH  = "data/private.jsonl"
-ADAPTER_PATH  = "adapters/qwen3-lora-v6-mixed-fmtfix"
+ADAPTER_PATH  = "lucashlaing/qwen3-lora-v6"
 LORA_RANK     = 16
+NUM_SAMPLES   = 8
 MAX_TOKENS    = 32768
-CHUNK_SIZE    = 32
+CHUNK_SIZE    = 8 # Reduced because we generate 8 per prompt
 
 SYSTEM_PROMPT_MCQ = (
     "You are an expert mathematician. "
@@ -25,6 +30,19 @@ SYSTEM_PROMPT_MCQ = (
 
 def log(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+
+def answer_visible_text(text: str) -> str:
+    think_end = text.rfind("</think>")
+    return text[think_end + len("</think>"):] if think_end >= 0 else text
+
+def extract_letter(text: str) -> str:
+    search_text = answer_visible_text(text)
+    matches = re.findall(r"\\boxed\{\s*([A-Za-z])\s*\}", search_text)
+    if not matches: matches = re.findall(r"\\boxed\{\s*([A-Za-z])\s*\}", text)
+    if matches: return matches[-1].upper()
+    matches = re.findall(r"\b([A-Z])\b", search_text.upper())
+    if not matches: matches = re.findall(r"\b([A-Z])\b", text.upper())
+    return matches[-1] if matches else ""
 
 def main():
     parser = argparse.ArgumentParser()
@@ -41,7 +59,7 @@ def main():
     log(f"Loading data from {args.input}...")
     data = [json.loads(line) for line in open(args.input, encoding='utf-8')]
     mcq_items = [d for d in data if d.get("options")]
-    log(f"Processing {len(mcq_items)} MCQ items.")
+    log(f"Processing {len(mcq_items)} MCQ items with n={NUM_SAMPLES} voting.")
 
     if not mcq_items:
         log("No MCQ items found. Exiting.")
@@ -67,6 +85,7 @@ def main():
     )
     lora_request = LoRARequest(lora_name="trained_v1", lora_int_id=1, lora_path=ADAPTER_PATH)
     sampling_params = SamplingParams(
+        n=NUM_SAMPLES,
         max_tokens=MAX_TOKENS,
         temperature=0.6,
         top_p=0.95,
@@ -86,8 +105,8 @@ def main():
             tokenize=False, add_generation_prompt=True
         ))
 
-    log(f"Generating completions for {len(prompts)} items in chunks of {CHUNK_SIZE}...")
-    responses = []
+    log(f"Generating {NUM_SAMPLES} samples per prompt in chunks of {CHUNK_SIZE}...")
+    all_responses = []
     for i in range(0, len(prompts), CHUNK_SIZE):
         chunk = prompts[i : i + CHUNK_SIZE]
         outputs = llm.generate(
@@ -96,26 +115,32 @@ def main():
             lora_request=lora_request, 
             use_tqdm=False
         )
-        responses.extend([out.outputs[0].text.strip() for out in outputs])
+        for out in outputs:
+            all_responses.append([o.text.strip() for o in out.outputs])
         log(f"  {min(i + CHUNK_SIZE, len(prompts))}/{len(prompts)} done")
     
     results = []
-    for item, resp in zip(mcq_items, responses):
+    for item, responses in zip(mcq_items, all_responses):
+        preds = [extract_letter(r) for r in responses]
+        counts = Counter([p for p in preds if p])
+        final_pred = counts.most_common(1)[0][0] if counts else (preds[0] if preds else "")
+        
         results.append({
             "id": item["id"],
             "is_mcq": True,
             "gold": item.get("answer"),
-            "response": resp,
+            "response": f"\\boxed{{{final_pred}}}",
+            "candidates": [f"\\boxed{{{p}}}" for p in preds],
         })
 
     # 4. Save
     out_dir = Path("results/shards")
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "mcq.jsonl"
+    out_path = out_dir / "mcq_voted.jsonl"
     with open(out_path, "w", encoding='utf-8') as f:
         for r in results:
             f.write(json.dumps(r) + "\n")
-    log(f"Saved MCQ results to {out_path}")
+    log(f"Saved voted MCQ results to {out_path}")
 
 if __name__ == "__main__":
     main()
