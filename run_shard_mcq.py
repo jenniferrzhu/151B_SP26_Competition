@@ -1,39 +1,50 @@
 """
-Parallel MCQ Shard Script (Base Model + 6 Variants).
-Matches the logic of run_shard_frq.py but specifically for MCQ items.
+Parallel MCQ Shard Script (LoRA v6 + Majority Voting n=8).
+Matches the logic of run_mcq_check.py but supports sharding across multiple GPUs.
 Run on multiple GPUs:
-GPU 0: python run_shard_mcq.py --gpu_id 0 --shard 0 --num_shards 1 --input data/private.jsonl
+GPU 0: python run_shard_mcq.py --gpu_id 0 --shard 0 --num_shards 2 --input data/private.jsonl
+GPU 1: python run_shard_mcq.py --gpu_id 1 --shard 1 --num_shards 2 --input data/private.jsonl
 """
 
 import json
 import os
 import time
 import argparse
+import re
 from pathlib import Path
+from collections import Counter
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-MODEL_ID   = "Qwen/Qwen3-4B-Thinking-2507"
+MODEL_ID      = "Qwen/Qwen3-4B-Thinking-2507"
 DEFAULT_INPUT_PATH  = "data/private.jsonl"
-MAX_TOKENS = 32768
-CHUNK_SIZE = 32
+ADAPTER_PATH  = "adapters/qwen3-lora-v6-mixed-fmtfix"
+LORA_RANK     = 16
+NUM_SAMPLES   = 8
+MAX_TOKENS    = 32768
+CHUNK_SIZE    = 8 # Reduced because we generate 8 per prompt
 
-CANDIDATE_VARIANTS = [
-    ("baseline_deterministic", "", 2),
-    ("answer_order_audit", "First identify every answer the problem asks for, especially each real [ANS] blank. Solve them in order and put all final sub-answers in one boxed list.", 1),
-    ("formula_first_exact", "Before arithmetic, write down the relevant formula or theorem. Keep exact values until the final step and round only when the problem explicitly asks.", 1),
-    ("independent_then_options", "Solve independently before looking at answer choices. For multiple choice, compare your result to every option and watch for common distractors.", 1),
-    ("sanity_check", "After solving, check units, signs, ranges, rounding, and whether the answer is reasonable. Correct the final answer before boxing it if the check fails.", 1),
-    ("concise_reasoning", "Solve the problem concisely. Keep the reasoning short and direct. Focus on the final result and skip unnecessary intermediate steps.", 1),
-]
-
+# EXACTLY matches LoRA v6 fine-tuning prompt for MCQ
 SYSTEM_PROMPT_MCQ = (
-    "You are an expert mathematician. Solve the problem step-by-step inside <think> tags, "
-    "then select the best option from the list below. "
-    "Put ONLY the final letter inside \\boxed{}, e.g. \\boxed{C}."
+    "You are an expert mathematician. "
+    "Read the problem and the answer choices below, then select the single best answer. "
+    "Output ONLY the letter of your chosen option inside \\boxed{}, e.g. \\boxed{C}."
 )
 
 def log(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+
+def answer_visible_text(text: str) -> str:
+    think_end = text.rfind("</think>")
+    return text[think_end + len("</think>"):] if think_end >= 0 else text
+
+def extract_letter(text: str) -> str:
+    search_text = answer_visible_text(text)
+    matches = re.findall(r"\\boxed\{\s*([A-Za-z])\s*\}", search_text)
+    if not matches: matches = re.findall(r"\\boxed\{\s*([A-Za-z])\s*\}", text)
+    if matches: return matches[-1].upper()
+    matches = re.findall(r"\b([A-Z])\b", search_text.upper())
+    if not matches: matches = re.findall(r"\b([A-Z])\b", text.upper())
+    return matches[-1] if matches else ""
 
 def format_mcq(question: str, options: list) -> str:
     labels = [chr(65 + i) for i in range(len(options))]
@@ -50,6 +61,7 @@ def main():
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     from vllm import LLM, SamplingParams
+    from vllm.lora.request import LoRARequest
     from transformers import AutoTokenizer
 
     # 1. Load and Filter
@@ -70,63 +82,78 @@ def main():
         log("No items in this shard. Exiting.")
         return
 
-    # 2. Init Model
+    # 2. Init Model with LoRA
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     tokenizer.pad_token = tokenizer.eos_token
     llm = LLM(
-        model=MODEL_ID, quantization="bitsandbytes", load_format="bitsandbytes",
-        enable_prefix_caching=False, gpu_memory_utilization=0.85, 
-        max_model_len=16384, trust_remote_code=True, max_num_seqs=64,
-        max_num_batched_tokens=16384, kv_cache_memory_bytes=14 * 1024**3,
+        model=MODEL_ID,
+        quantization="bitsandbytes",
+        load_format="bitsandbytes",
+        enable_prefix_caching=False,
+        gpu_memory_utilization=0.85,
+        max_model_len=16384,
+        trust_remote_code=True,
+        max_num_seqs=64,
+        max_num_batched_tokens=16384,
+        kv_cache_memory_bytes=14 * 1024**3,
+        enable_lora=True,
+        max_lora_rank=LORA_RANK,
+        max_loras=1,
+    )
+    lora_request = LoRARequest(lora_name="trained_v1", lora_int_id=1, lora_path=ADAPTER_PATH)
+    sampling_params = SamplingParams(
+        n=NUM_SAMPLES,
+        max_tokens=MAX_TOKENS,
+        temperature=0.6,
+        top_p=0.95,
+        top_k=20,
+        min_p=0.0,
     )
 
-    deterministic_params = SamplingParams(max_tokens=MAX_TOKENS, temperature=0.0)
-    sampled_params = SamplingParams(
-        max_tokens=MAX_TOKENS, temperature=0.6, top_p=0.95, top_k=20, min_p=0.0
-    )
-
-    # 3. Pre-initialize results
-    results = []
+    # 3. Build Prompts
+    prompts = []
     for item in my_items:
+        user_content = format_mcq(item["question"], item["options"])
+        prompts.append(tokenizer.apply_chat_template(
+            [{"role": "system", "content": SYSTEM_PROMPT_MCQ}, {"role": "user", "content": user_content}],
+            tokenize=False, add_generation_prompt=True
+        ))
+
+    # 4. Generate with n=8
+    log(f"Generating {NUM_SAMPLES} samples per prompt in chunks of {CHUNK_SIZE}...")
+    all_responses = []
+    for i in range(0, len(prompts), CHUNK_SIZE):
+        chunk = prompts[i : i + CHUNK_SIZE]
+        outputs = llm.generate(
+            chunk, 
+            sampling_params=sampling_params, 
+            lora_request=lora_request, 
+            use_tqdm=False
+        )
+        for out in outputs:
+            all_responses.append([o.text.strip() for o in out.outputs])
+        log(f"  {min(i + CHUNK_SIZE, len(prompts))}/{len(prompts)} done")
+
+    # 5. Process and Save
+    results = []
+    for item, responses in zip(my_items, all_responses):
+        preds = [extract_letter(r) for r in responses]
+        counts = Counter([p for p in preds if p])
+        final_pred = counts.most_common(1)[0][0] if counts else (preds[0] if preds else "")
+        
         results.append({
             "id": item["id"],
             "is_mcq": True,
             "gold": item.get("answer"),
-            "candidates": [],
-            "candidate_variants": [v[0] for v in CANDIDATE_VARIANTS]
+            "response": f"\\boxed{{{final_pred}}}",
+            "candidates": [f"\\boxed{{{p}}}" for p in preds], # For assembler compatibility
+            "all_preds": preds,
+            "vote_counts": dict(counts)
         })
 
-    # 4. Generate Variants
-    for v_idx, v in enumerate(CANDIDATE_VARIANTS):
-        name, instruction, weight = v
-        prompts = []
-        for item in my_items:
-            user = format_mcq(item["question"], item["options"])
-            if instruction:
-                user = f"{user}\n\nAttempt style: {name}\n{instruction}\nFollow the original problem exactly. Put final letter in \\boxed{{}}."
-            
-            prompts.append(tokenizer.apply_chat_template(
-                [{"role": "system", "content": SYSTEM_PROMPT_MCQ}, {"role": "user", "content": user}],
-                tokenize=False, add_generation_prompt=True
-            ))
-        
-        log(f"Generating MCQ Variant {v_idx+1}/6: {name} in chunks of {CHUNK_SIZE}...")
-        params = deterministic_params if v_idx == 0 else sampled_params
-        
-        v_responses = []
-        for i in range(0, len(prompts), CHUNK_SIZE):
-            chunk = prompts[i : i + CHUNK_SIZE]
-            outputs = llm.generate(chunk, sampling_params=params, use_tqdm=False)
-            v_responses.extend([out.outputs[0].text.strip() for out in outputs])
-            log(f"  {min(i + CHUNK_SIZE, len(prompts))}/{len(prompts)} done")
-        
-        for i, resp in enumerate(v_responses):
-            results[i]["candidates"].append(resp)
-
-    # 5. Save
     out_dir = Path("results/shards")
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"mcq_shard_{args.shard}.jsonl"
+    out_path = out_dir / f"mcq2_shard_{args.shard}.jsonl"
     with open(out_path, "w", encoding='utf-8') as f:
         for r in results:
             f.write(json.dumps(r) + "\n")
