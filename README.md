@@ -1,11 +1,11 @@
-# Math Reasoning Competition Submission - Team CSE 151B
+# Math Reasoning Competition Submission - Team G069 CSE 151B
 
 This repository contains the inference pipeline and fine-tuned models for the Math Reasoning Competition.
 
 ## Strategy Overview
 Our final strategy utilizes a hybrid approach:
 - **Multiple-Choice Questions (MCQ)**: Powered by a fine-tuned **LoRA v6** adapter on top of Qwen3-4B-Thinking. We use **Majority Voting (n=8)** at Temperature 0.6 to stabilize reasoning.
-- **Free-Response Questions (FRQ)**: Powered by the **Base Model** (Qwen3-4B-Thinking-2507) using a **6-Variant Weighted Ensemble**. Prompt variants include symbolic-first solving, answer-order auditing, and concise reasoning. We use Weighted Majority Voting (Baseline Weight 2, others 1) to produce the final response.
+- **Free-Response Questions (FRQ)**: Powered by the **Base Model** (Qwen3-4B-Thinking-2507) with a **5-variant prompt ensemble** — 1 deterministic baseline (temp 0.0) + 4 sampled variants at temp 0.6 (`answer_order_audit`, `formula_first_exact`, `independent_then_options`, `sanity_check`) under a long few-shot system prompt. An **LLM-judge selector** (temp 0, 4096 tokens) then picks the best candidate: it names "Candidate #N" → return that candidate verbatim, writes its own `\boxed{}` → return the selector's response, otherwise → equivalence-class majority vote over the 5 boxed answers. The submitted `response` always carries the full chain-of-thought trace.
 
 ## Hardware & Performance
 - **GPU Used**: RTX 4090 
