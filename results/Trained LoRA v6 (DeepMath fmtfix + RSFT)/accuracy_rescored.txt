@@ -1,0 +1,10 @@
+Rescored with updated judger.py
+Folder: Trained LoRA v6 (DeepMath fmtfix + RSFT)
+Total items: 226
+
+  MCQ        :   59 /   81  (72.84%)
+  Free-form  :   84 /  145  (57.93%)
+  Overall    :  143 /  226  (63.27%)
+
+  Old (saved) overall : 142 / 226 (62.83%)
+  Delta vs old        : +1 items (+0.44 pts)

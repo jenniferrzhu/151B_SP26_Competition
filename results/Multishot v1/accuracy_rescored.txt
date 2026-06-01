@@ -1,0 +1,17 @@
+Rescored with updated judger.py
+Folder: Multishot v1
+Total items: 226
+
+  MCQ        :   58 /   81  (71.60%)
+  Free-form  :   83 /  145  (57.24%)
+  Overall    :  141 /  226  (62.39%)
+
+  Old (saved) overall : 139 / 226 (61.50%)
+  Delta vs old        : +2 items (+0.88 pts)
+
+  Per-variant candidate accuracy (rescored):
+    cand_0                          138 /  226  (61.06%)
+    cand_1                          140 /  226  (61.95%)
+    cand_2                          140 /  226  (61.95%)
+    cand_3                          142 /  226  (62.83%)
+    cand_4                          137 /  226  (60.62%)

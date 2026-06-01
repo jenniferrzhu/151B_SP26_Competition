@@ -1,0 +1,10 @@
+Rescored with updated judger.py
+Folder: Altered FRQ Prompt
+Total items: 226
+
+  MCQ        :   54 /   81  (66.67%)
+  Free-form  :   84 /  145  (57.93%)
+  Overall    :  138 /  226  (61.06%)
+
+  Old (saved) overall : 137 / 226 (60.62%)
+  Delta vs old        : +1 items (+0.44 pts)

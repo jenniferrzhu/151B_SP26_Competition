@@ -1,0 +1,9 @@
+[23:05:48] Loading data from data/train.jsonl
+[23:05:48]   900 train items (294 MCQ, 606 free-form)
+[23:05:48] Loading tokenizer + 4-bit base model (Qwen/Qwen3-4B-Thinking-2507)
+[23:05:59] Attaching LoRA adapter
+[23:06:11]   trainable params: 33.03M / 2239M (1.475%)
+[23:06:14] Starting training...
+[23:27:04] Training finished in 20.8 min
+[23:27:04] Saving adapter to adapters/qwen3-lora-v1
+[23:27:05] Done.

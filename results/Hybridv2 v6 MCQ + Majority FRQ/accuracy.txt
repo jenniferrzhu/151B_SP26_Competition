@@ -1,0 +1,21 @@
+Hybrid evaluation - Qwen/Qwen3-4B-Thinking-2507
+GPU: 2
+MCQ adapter: adapters/qwen3-lora-v6-mixed-fmtfix
+Prompt config: built-in defaults
+Test set: data/test.jsonl (226 items, 226 scored)
+Candidates per FRQ prompt: 5
+Candidate variants: baseline_deterministic, answer_order_audit, formula_first_exact, independent_then_options, sanity_check
+Generation time: 149.7 min
+
+  MCQ        :   53 /   81  (65.43%)
+  Free-form  :   80 /  145  (55.17%)
+  Overall    :  133 /  226  (58.85%)
+  Oracle@5:  144 /  226  (63.72%)
+  Selector missed available correct candidate:   11
+
+  Candidate accuracy by variant:
+    baseline_deterministic  :   83 /  145  (57.24%)
+    answer_order_audit      :   89 /  145  (61.38%)
+    formula_first_exact     :   87 /  145  (60.00%)
+    independent_then_options:   88 /  145  (60.69%)
+    sanity_check            :   84 /  145  (57.93%)

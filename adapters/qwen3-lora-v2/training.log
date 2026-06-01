@@ -1,0 +1,10 @@
+[08:32:07] Loading data from data/train_with_traces.jsonl (RSFT mode — targets include reasoning)
+[08:32:07]   Filtered traces > 14000 chars: kept 457/536
+[08:32:07]   457 train items (132 MCQ, 325 free-form)
+[08:32:07] Loading tokenizer + 4-bit base model (Qwen/Qwen3-4B-Thinking-2507)
+[08:32:19] Attaching LoRA adapter
+[08:32:31]   trainable params: 33.03M / 2239M (1.475%)
+[08:32:35] Starting training...
+[08:58:39] Training finished in 26.1 min
+[08:58:39] Saving adapter to adapters/qwen3-lora-v2
+[08:58:40] Done.

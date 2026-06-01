@@ -1,0 +1,9 @@
+LoRA fine-tuned evaluation - Qwen/Qwen3-4B-Thinking-2507
+Adapter: adapters/qwen3-lora-v1
+GPU: 7
+Test set: data/test.jsonl (226 items)
+Generation time: 0.4 min
+
+  MCQ        :   24 /   81  (29.63%)
+  Free-form  :   47 /  145  (32.41%)
+  Overall    :   71 /  226  (31.42%)

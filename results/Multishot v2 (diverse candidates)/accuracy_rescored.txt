@@ -1,0 +1,21 @@
+Rescored with updated judger.py
+Folder: Multishot v2 (diverse candidates)
+Total items: 226
+
+  MCQ        :   52 /   81  (64.20%)
+  Free-form  :   86 /  145  (59.31%)
+  Overall    :  138 /  226  (61.06%)
+
+  Old (saved) overall : 137 / 226 (60.62%)
+  Delta vs old        : +1 items (+0.44 pts)
+
+  Oracle@k (old)      : 156 / 226 (69.03%)
+  Oracle@k (rescored) : 157 / 226 (69.47%)
+  Selector miss (rescored) : 19
+
+  Per-variant candidate accuracy (rescored):
+    answer_order_audit              141 /  226  (62.39%)
+    baseline_deterministic          138 /  226  (61.06%)
+    formula_first_exact             145 /  226  (64.16%)
+    independent_then_options        140 /  226  (61.95%)
+    sanity_check                    137 /  226  (60.62%)

@@ -1,0 +1,11 @@
+Baseline evaluation - Qwen/Qwen3-4B-Thinking-2507 (no training)
+GPU: 1
+Test set: data/test.jsonl (226 items)
+Candidates per prompt: 5
+Generation time: 1454.8 min
+  Candidate pass: 1331.3 min
+  Selector pass : 123.4 min
+
+  MCQ        :   58 /   81  (71.60%)
+  Free-form  :   81 /  145  (55.86%)
+  Overall    :  139 /  226  (61.50%)

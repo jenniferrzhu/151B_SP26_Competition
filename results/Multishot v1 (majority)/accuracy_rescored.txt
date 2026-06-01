@@ -1,0 +1,10 @@
+Rescored with updated judger.py
+Folder: Multishot v1 (majority)
+Total items: 226
+
+  MCQ        :   57 /   81  (70.37%)
+  Free-form  :   85 /  145  (58.62%)
+  Overall    :  142 /  226  (62.83%)
+
+  Old (saved) overall : 141 / 226 (62.39%)
+  Delta vs old        : +1 items (+0.44 pts)

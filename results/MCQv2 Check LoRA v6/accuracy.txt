@@ -1,0 +1,4 @@
+Standalone MCQ Evaluation - Qwen/Qwen3-4B-Thinking-2507
+Adapter: adapters/qwen3-lora-v6-mixed-fmtfix
+Test set: data/test.jsonl (81 MCQ items)
+Accuracy: 66.67% (54/81)

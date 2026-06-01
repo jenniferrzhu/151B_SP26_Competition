@@ -1,0 +1,12 @@
+{
+  "best_candidate_id": "seed_01",
+  "best_candidate_name": "answer_order_audit",
+  "best_train_score": 0.6666666666666666,
+  "best_val_score": 0.55,
+  "training_metric_calls": 150,
+  "validation_metric_calls": 240,
+  "reflection_calls": 11,
+  "num_candidates": 16,
+  "num_finalists": 6,
+  "prompt_config": "results/gepa_prompt_optimization/best_prompt_config.json"
+}

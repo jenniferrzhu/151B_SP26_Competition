@@ -1,0 +1,21 @@
+Diverse-candidate evaluation - Qwen/Qwen3-4B-Thinking-2507 (no training)
+GPU: 4
+Test set: data/test.jsonl (226 items, 226 scored)
+Candidates per prompt: 5
+Candidate variants: baseline_deterministic, answer_order_audit, formula_first_exact, independent_then_options, sanity_check
+Generation time: 285.8 min
+  Candidate pass: 260.5 min
+  Selector pass : 25.3 min
+
+  MCQ        :   50 /   81  (61.73%)
+  Free-form  :   86 /  145  (59.31%)
+  Overall    :  136 /  226  (60.18%)
+  Oracle@5:  153 /  226  (67.70%)
+  Selector missed available correct candidate:   18
+
+  Candidate accuracy by variant:
+    baseline_deterministic  :  135 /  226  (59.73%)
+    answer_order_audit      :  140 /  226  (61.95%)
+    formula_first_exact     :  141 /  226  (62.39%)
+    independent_then_options:  140 /  226  (61.95%)
+    sanity_check            :  139 /  226  (61.50%)
